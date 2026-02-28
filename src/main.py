@@ -1,9 +1,13 @@
 from fastapi import FastAPI, Query
 
 from .extractor import extract, ExtractRequest, ExtractionResult
+from src.routers.summarizer import router as summarizer_router
+from src.routers.report import router as report_router
 
-app = FastAPI()
+app = FastAPI(title="Clearway API")
 
+app.include_router(summarizer_router)
+app.include_router(report_router)
 
 @app.get("/")
 def root():
@@ -13,8 +17,3 @@ def root():
 @app.get("/extract", response_model=ExtractionResult)
 async def extract_get(url: str = Query(None), text: str = Query(None)) -> ExtractionResult:
     return await extract(ExtractRequest(url=url, text=text))
-
-
-@app.post("/extract", response_model=ExtractionResult)
-async def extract_post(request: ExtractRequest) -> ExtractionResult:
-    return await extract(request)
