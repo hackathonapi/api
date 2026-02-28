@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from extractor import extract, ExtractRequest, ExtractionResult
+from .extractor import extract, ExtractRequest, ExtractionResult
 
 app = FastAPI()
 
