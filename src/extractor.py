@@ -502,8 +502,8 @@ async def _main():
 
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python extractor.py <url>")
-        print("  python extractor.py --text 'your raw text here'")
+        print("  python -m src.extractor <url>")
+        print("  python -m src.extractor --text 'your raw text here'")
         return
 
     flag = sys.argv[1]
