@@ -1,11 +1,10 @@
-from typing import Literal, Optional
+from typing import Literal, Optional  # Optional kept for ReportResponse.extraction_error
 
 from pydantic import BaseModel, Field
 
 
 class ReportRequest(BaseModel):
-    url: Optional[str] = None
-    text: Optional[str] = None
+    input: str
     method: Literal["openai", "sumy", "auto"] = Field(default="auto")
     sentence_count: int = Field(default=5, ge=1, le=20)
 

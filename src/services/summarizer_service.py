@@ -4,7 +4,7 @@ from typing import Literal
 
 from openai import AsyncOpenAI, AuthenticationError, RateLimitError, APIError
 
-from src.config import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 

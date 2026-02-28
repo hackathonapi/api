@@ -11,24 +11,8 @@ from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 import httpx
 import pymupdf
 from newspaper import Article, Config
-from pydantic import BaseModel
 
-
-# ---------------------------------------------------------------------------
-# Models
-# ---------------------------------------------------------------------------
-
-class ExtractRequest(BaseModel):
-    input: str
-
-
-class ExtractionResult(BaseModel):
-    content: str
-    input_type: str
-    source: str
-    word_count: int
-    extraction_method: str
-    error: Optional[str]
+from ..models.extract import ExtractRequest, ExtractionResult
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +129,7 @@ def detect_url_type(url: str) -> str:
     parsed = urlparse(url)
     domain = parsed.netloc.lower().replace("www.", "")
     path = parsed.path.lower()
-    
+
     if domain in ("reddit.com", "old.reddit.com", "new.reddit.com"):
         return "reddit"
 
@@ -211,7 +195,6 @@ def _get_playwright_html(url: str) -> Optional[str]:
 # URL extractors
 # ---------------------------------------------------------------------------
 
-
 async def extract_reddit(url: str) -> ExtractionResult:
     url = url.replace("www.reddit.com", "old.reddit.com")
     url = url.replace("new.reddit.com", "old.reddit.com")
@@ -219,7 +202,6 @@ async def extract_reddit(url: str) -> ExtractionResult:
     headers = {"User-Agent": "Mozilla/5.0 (compatible; accessibility-api/1.0)"}
 
     try:
-        # Reddit exposes .json on any post URL — simpler than scraping HTML
         json_url = url.rstrip("/") + ".json"
 
         async with httpx.AsyncClient(follow_redirects=True, timeout=10) as client:
@@ -263,7 +245,6 @@ async def extract_pdf_url(url: str) -> ExtractionResult:
             response = await client.get(url)
             response.raise_for_status()
 
-        # PyMuPDF requires a file path, so buffer to a temp file
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             tmp.write(response.content)
             tmp_path = tmp.name
@@ -302,7 +283,6 @@ async def extract_generic(url: str) -> ExtractionResult:
     method = "newspaper"
     content = None
 
-    # Check known paywall domains before attempting any download
     domain = urlparse(url).netloc.lower().replace("www.", "")
     if any(domain.endswith(d) for d in KNOWN_PAYWALL_DOMAINS):
         return ExtractionResult(
@@ -314,10 +294,8 @@ async def extract_generic(url: str) -> ExtractionResult:
             ),
         )
 
-    # Tier 1: newspaper — handles most static pages
     try:
         raw_html, title, text = await asyncio.to_thread(_run_newspaper, url)
-        # Check for soft paywalls using HTML signals and word count
         check_for_paywall(url, raw_html, len(raw_html.split()))
         content = _normalize(f"{title}\n\n{text}" if title else text)
     except PaywallDetected as e:
@@ -329,7 +307,6 @@ async def extract_generic(url: str) -> ExtractionResult:
     except Exception:
         content = None
 
-    # Tier 2: Playwright fallback for JS-heavy pages — feeds rendered HTML back into newspaper
     if not content or len(content.split()) < 150:
         rendered_html = await asyncio.to_thread(_get_playwright_html, url)
         if rendered_html:
@@ -395,7 +372,7 @@ async def extract_from_text(text: str) -> ExtractionResult:
 
 
 # ---------------------------------------------------------------------------
-# Main router
+# Public interface
 # ---------------------------------------------------------------------------
 
 MAX_TEXT_LENGTH = 50_000  # ~10,000 words
@@ -427,7 +404,7 @@ async def _main():
     import json
 
     if len(sys.argv) < 2:
-        print("Usage: python -m src.extractor <url or text>")
+        print("Usage: python -m src.services.extractor_service <url or text>")
         return
 
     request = ExtractRequest(input=" ".join(sys.argv[1:]))

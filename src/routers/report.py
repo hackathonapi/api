@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
 
-from src.extractor import extract, ExtractRequest
-from src.models.report import ReportRequest, ReportResponse
-from src.services.summarizer_service import summarize
+from ..models.extract import ExtractRequest
+from ..services.extractor_service import extract
+from ..models.report import ReportRequest, ReportResponse
+from ..services.summarizer_service import summarize
 
 router = APIRouter(prefix="/report", tags=["Report"])
 
@@ -10,7 +11,11 @@ router = APIRouter(prefix="/report", tags=["Report"])
 @router.post("", response_model=ReportResponse)
 async def generate_report(request: ReportRequest) -> ReportResponse:
     # Step 1: Extract
-    extraction = await extract(ExtractRequest(url=request.url, text=request.text))
+    try:
+        extraction = await extract(ExtractRequest(input=request.input))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
     if extraction.error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
