@@ -22,6 +22,8 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
+test.py
+output.pdf
 
 # Logs
 *.log

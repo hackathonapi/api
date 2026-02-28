@@ -166,31 +166,6 @@ def _run_newspaper(url: str, input_html: Optional[str] = None) -> tuple[str, str
     return article.html, article.title or "", article.authors or [], article.text or ""
 
 
-def _get_playwright_html(url: str) -> Optional[str]:
-    """Render a JS-heavy page with Playwright and return the full HTML."""
-    try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-
-            # Block images/fonts/css — we only need the DOM text
-            page.route(
-                "**/*.{png,jpg,jpeg,gif,svg,css,woff,woff2}",
-                lambda route: route.abort(),
-            )
-
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_timeout(2000)
-            html = page.content()
-            browser.close()
-            return html
-
-    except Exception:
-        return None
-
-
 # ---------------------------------------------------------------------------
 # URL extractors
 # ---------------------------------------------------------------------------
@@ -308,20 +283,6 @@ async def extract_generic(url: str) -> ExtractionResult:
         )
     except Exception:
         content = None
-
-    if not content or len(content.split()) < 150:
-        rendered_html = await asyncio.to_thread(_get_playwright_html, url)
-        if rendered_html:
-            try:
-                _, pw_title, pw_authors, pw_text = await asyncio.to_thread(_run_newspaper, url, rendered_html)
-                playwright_content = _normalize(pw_text)
-                if playwright_content and len(playwright_content.split()) > len((content or "").split()):
-                    content = playwright_content
-                    title = pw_title or title
-                    authors = pw_authors or authors
-                    method = "playwright"
-            except Exception:
-                pass
 
     if not content or len(content.split()) < 50:
         return ExtractionResult(
