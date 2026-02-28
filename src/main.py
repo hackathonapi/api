@@ -1,9 +1,13 @@
 from fastapi import FastAPI, HTTPException, Query
 
 from .extractor import extract, ExtractRequest, ExtractionResult
+from src.routers.summarizer import router as summarizer_router
+from src.routers.report import router as report_router
 
-app = FastAPI()
+app = FastAPI(title="Clearway API")
 
+app.include_router(summarizer_router)
+app.include_router(report_router)
 
 @app.get("/")
 def root():
