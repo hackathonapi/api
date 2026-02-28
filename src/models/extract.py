@@ -8,6 +8,8 @@ class ExtractRequest(BaseModel):
 
 
 class ExtractionResult(BaseModel):
+    title: str
+    authors: list[str]
     content: str
     input_type: str
     source: str

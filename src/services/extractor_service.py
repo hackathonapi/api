@@ -154,8 +154,8 @@ def _newspaper_config() -> Config:
     return config
 
 
-def _run_newspaper(url: str, input_html: Optional[str] = None) -> tuple[str, str, str]:
-    """Download and parse an article with newspaper. Returns (raw_html, title, text).
+def _run_newspaper(url: str, input_html: Optional[str] = None) -> tuple[str, str, list[str], str]:
+    """Download and parse an article with newspaper. Returns (raw_html, title, authors, text).
     Synchronous — always call via asyncio.to_thread."""
     article = Article(url, config=_newspaper_config())
     if input_html:
@@ -163,7 +163,7 @@ def _run_newspaper(url: str, input_html: Optional[str] = None) -> tuple[str, str
     else:
         article.download()
     article.parse()
-    return article.html, article.title or "", article.text or ""
+    return article.html, article.title or "", article.authors or [], article.text or ""
 
 
 def _get_playwright_html(url: str) -> Optional[str]:
@@ -220,20 +220,20 @@ async def extract_reddit(url: str) -> ExtractionResult:
 
         if not content:
             return ExtractionResult(
-                content="", source=url, input_type="url",
+                title="", authors=[], content="", source=url, input_type="url",
                 word_count=0, extraction_method="reddit_json",
                 error="Post appears to be empty, deleted, or a link post with no body.",
             )
 
         return ExtractionResult(
-            content=content, source=url, input_type="url",
+            title=title, authors=[], content=_normalize(body), source=url, input_type="url",
             word_count=len(content.split()),
             extraction_method="reddit_json", error=None,
         )
 
     except Exception as e:
         return ExtractionResult(
-            content="", source=url, input_type="url",
+            title="", authors=[], content="", source=url, input_type="url",
             word_count=0, extraction_method="reddit_json",
             error=f"Could not extract Reddit post: {str(e)}",
         )
@@ -260,20 +260,20 @@ async def extract_pdf_url(url: str) -> ExtractionResult:
 
         if not text:
             return ExtractionResult(
-                content="", source=url, input_type="url",
+                title="", authors=[], content="", source=url, input_type="url",
                 word_count=0, extraction_method="pdf_url",
                 error="PDF contains no extractable text. It may be a scanned image PDF.",
             )
 
         return ExtractionResult(
-            content=text, source=url, input_type="url",
+            title="", authors=[], content=text, source=url, input_type="url",
             word_count=len(text.split()),
             extraction_method="pdf_url", error=None,
         )
 
     except Exception as e:
         return ExtractionResult(
-            content="", source=url, input_type="url",
+            title="", authors=[], content="", source=url, input_type="url",
             word_count=0, extraction_method="pdf_url",
             error=f"Could not download or extract PDF: {str(e)}",
         )
@@ -282,11 +282,13 @@ async def extract_pdf_url(url: str) -> ExtractionResult:
 async def extract_generic(url: str) -> ExtractionResult:
     method = "newspaper"
     content = None
+    title = ""
+    authors: list[str] = []
 
     domain = urlparse(url).netloc.lower().replace("www.", "")
     if any(domain.endswith(d) for d in KNOWN_PAYWALL_DOMAINS):
         return ExtractionResult(
-            content="", source=url, input_type="url",
+            title="", authors=[], content="", source=url, input_type="url",
             word_count=0, extraction_method="newspaper",
             error=(
                 f"'{domain}' is a known paywalled publication. "
@@ -295,12 +297,12 @@ async def extract_generic(url: str) -> ExtractionResult:
         )
 
     try:
-        raw_html, title, text = await asyncio.to_thread(_run_newspaper, url)
+        raw_html, title, authors, text = await asyncio.to_thread(_run_newspaper, url)
         check_for_paywall(url, raw_html, len(raw_html.split()))
-        content = _normalize(f"{title}\n\n{text}" if title else text)
+        content = _normalize(text)
     except PaywallDetected as e:
         return ExtractionResult(
-            content="", source=url, input_type="url",
+            title="", authors=[], content="", source=url, input_type="url",
             word_count=0, extraction_method="newspaper",
             error=str(e),
         )
@@ -311,17 +313,19 @@ async def extract_generic(url: str) -> ExtractionResult:
         rendered_html = await asyncio.to_thread(_get_playwright_html, url)
         if rendered_html:
             try:
-                _, title, text = await asyncio.to_thread(_run_newspaper, url, rendered_html)
-                playwright_content = _normalize(f"{title}\n\n{text}" if title else text)
+                _, pw_title, pw_authors, pw_text = await asyncio.to_thread(_run_newspaper, url, rendered_html)
+                playwright_content = _normalize(pw_text)
                 if playwright_content and len(playwright_content.split()) > len((content or "").split()):
                     content = playwright_content
+                    title = pw_title or title
+                    authors = pw_authors or authors
                     method = "playwright"
             except Exception:
                 pass
 
     if not content or len(content.split()) < 50:
         return ExtractionResult(
-            content="", source=url, input_type="url",
+            title="", authors=[], content="", source=url, input_type="url",
             word_count=0, extraction_method=method,
             error=(
                 "Could not extract meaningful content from this page. "
@@ -331,7 +335,7 @@ async def extract_generic(url: str) -> ExtractionResult:
         )
 
     return ExtractionResult(
-        content=content, source=url, input_type="url",
+        title=title, authors=authors, content=content, source=url, input_type="url",
         word_count=len(content.split()),
         extraction_method=method, error=None,
     )
@@ -359,13 +363,13 @@ async def extract_from_text(text: str) -> ExtractionResult:
 
     if not text:
         return ExtractionResult(
-            content="", source="raw_text", input_type="text",
+            title="", authors=[], content="", source="raw_text", input_type="text",
             word_count=0, extraction_method="raw_text",
             error="Input text is empty.",
         )
 
     return ExtractionResult(
-        content=text, source="raw_text", input_type="text",
+        title="", authors=[], content=text, source="raw_text", input_type="text",
         word_count=len(text.split()),
         extraction_method="raw_text", error=None,
     )
