@@ -1,10 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
 
-from src.models.summarizer import SummarizeRequest, SummarizeResponse
-from src.services.summarizer_service import summarize
+from ..models.summarizer import SummarizeRequest, SummarizeResponse
+from ..services.summarizer_service import summarize
 
 router = APIRouter(prefix="/summarize", tags=["Summarizer"])
-
 
 @router.post(
     "",
