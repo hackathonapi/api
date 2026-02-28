@@ -1,5 +1,6 @@
-beautifulsoup4
+newspaper4k
 lxml
+lxml-html-clean
 playwright
 youtube-transcript-api
 annotated-doc==0.0.4
