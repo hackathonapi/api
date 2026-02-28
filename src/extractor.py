@@ -12,7 +12,6 @@ import httpx
 import pymupdf
 from newspaper import Article, Config
 from pydantic import BaseModel
-from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 
 
 # ---------------------------------------------------------------------------
@@ -20,8 +19,7 @@ from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, Tran
 # ---------------------------------------------------------------------------
 
 class ExtractRequest(BaseModel):
-    url: Optional[str] = None
-    text: Optional[str] = None
+    input: str
 
 
 class ExtractionResult(BaseModel):
@@ -85,7 +83,7 @@ def check_for_paywall(url: str, html: str, word_count: int):
     if any(domain.endswith(d) for d in KNOWN_PAYWALL_DOMAINS):
         raise PaywallDetected(
             f"'{domain}' is a known paywalled publication. "
-            "Please access the content directly and paste the text using the 'text' parameter."
+            "Please access the content directly and paste the text as input instead."
         )
 
     html_lower = html.lower()
@@ -93,14 +91,28 @@ def check_for_paywall(url: str, html: str, word_count: int):
         if signal in html_lower:
             raise PaywallDetected(
                 "This content appears to be behind a paywall. "
-                "Please paste the text directly using the 'text' parameter."
+                "Please paste the text directly as input instead."
             )
 
     if word_count < 120:
         raise PaywallDetected(
             "This page returned very little text and may be paywalled or require login. "
-            "Please paste the text directly using the 'text' parameter."
+            "Please paste the text directly as input instead."
         )
+
+
+# ---------------------------------------------------------------------------
+# URL detection
+# ---------------------------------------------------------------------------
+
+def _is_url(text: str) -> bool:
+    text = text.strip()
+    if re.match(r'^https?://', text):
+        return True
+    # No spaces + looks like a domain (e.g. "example.com/path")
+    if ' ' not in text and re.match(r'^[\w.-]+\.[a-zA-Z]{2,}', text):
+        return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -133,11 +145,7 @@ def detect_url_type(url: str) -> str:
     parsed = urlparse(url)
     domain = parsed.netloc.lower().replace("www.", "")
     path = parsed.path.lower()
-
-    if domain in ("youtube.com", "youtu.be"):
-        if "watch" in path or "youtu.be" in url or "/shorts/" in path:
-            return "youtube"
-
+    
     if domain in ("reddit.com", "old.reddit.com", "new.reddit.com"):
         return "reddit"
 
@@ -202,75 +210,6 @@ def _get_playwright_html(url: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # URL extractors
 # ---------------------------------------------------------------------------
-
-def get_youtube_video_id(url: str) -> Optional[str]:
-    pattern = r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})"
-    match = re.search(pattern, url)
-    return match.group(1) if match else None
-
-
-async def extract_youtube(url: str) -> ExtractionResult:
-    video_id = get_youtube_video_id(url)
-
-    if not video_id:
-        return ExtractionResult(
-            content="", source=url, input_type="url",
-            word_count=0, extraction_method="youtube_transcript",
-            error="Could not extract video ID from this YouTube URL.",
-        )
-
-    ytt = YouTubeTranscriptApi()
-
-    try:
-        # 1. Try English transcript
-        # 2. Try any language without restriction
-        # 3. List all available and pick the first
-        try:
-            fetched = ytt.fetch(video_id, languages=["en"])
-        except NoTranscriptFound:
-            try:
-                fetched = ytt.fetch(video_id)
-            except NoTranscriptFound:
-                all_transcripts = list(ytt.list(video_id))
-                if not all_transcripts:
-                    raise
-                fetched = all_transcripts[0].fetch()
-
-        text = " ".join(
-            snippet["text"].strip()
-            for snippet in fetched.to_raw_data()
-            if snippet["text"].strip()
-        )
-
-        # Remove artifacts like [Music], [Applause]
-        text = re.sub(r'\[.*?\]', '', text)
-        text = _normalize(text)
-
-        if not text:
-            return ExtractionResult(
-                content="", source=url, input_type="url",
-                word_count=0, extraction_method="youtube_transcript",
-                error="Transcript was empty after cleaning.",
-            )
-
-        return ExtractionResult(
-            content=text, source=url, input_type="url",
-            word_count=len(text.split()),
-            extraction_method="youtube_transcript", error=None,
-        )
-
-    except TranscriptsDisabled:
-        return ExtractionResult(
-            content="", source=url, input_type="url",
-            word_count=0, extraction_method="youtube_transcript",
-            error="This video has transcripts disabled by the creator.",
-        )
-    except Exception as e:
-        return ExtractionResult(
-            content="", source=url, input_type="url",
-            word_count=0, extraction_method="youtube_transcript",
-            error=f"{type(e).__name__}: {str(e)}",
-        )
 
 
 async def extract_reddit(url: str) -> ExtractionResult:
@@ -371,7 +310,7 @@ async def extract_generic(url: str) -> ExtractionResult:
             word_count=0, extraction_method="newspaper",
             error=(
                 f"'{domain}' is a known paywalled publication. "
-                "Please access the content directly and paste the text using the 'text' parameter."
+                "Please access the content directly and paste the text as input instead."
             ),
         )
 
@@ -410,7 +349,7 @@ async def extract_generic(url: str) -> ExtractionResult:
             error=(
                 "Could not extract meaningful content from this page. "
                 "It may be highly dynamic, require login, or contain no readable text. "
-                "Please paste the text directly using the 'text' parameter."
+                "Please paste the text directly as input instead."
             ),
         )
 
@@ -426,7 +365,6 @@ async def extract_from_url(url: str) -> ExtractionResult:
     url_type = detect_url_type(url)
 
     extractors = {
-        "youtube": extract_youtube,
         "reddit":  extract_reddit,
         "pdf_url": extract_pdf_url,
         "generic": extract_generic,
@@ -464,32 +402,20 @@ MAX_TEXT_LENGTH = 50_000  # ~10,000 words
 
 
 async def extract(request: ExtractRequest) -> ExtractionResult:
-    provided = sum([request.url is not None, request.text is not None])
+    inp = request.input.strip()
 
-    if provided == 0:
-        return ExtractionResult(
-            content="", source="", input_type="none",
-            word_count=0, extraction_method="none",
-            error="No input provided. Please provide either 'url' or 'text'.",
+    if not inp:
+        raise ValueError("Input cannot be empty.")
+
+    if _is_url(inp):
+        return await extract_from_url(inp)
+
+    if len(inp) > MAX_TEXT_LENGTH:
+        raise ValueError(
+            f"Text exceeds maximum length of {MAX_TEXT_LENGTH} characters (~10,000 words). Please shorten the input."
         )
 
-    if provided > 1:
-        return ExtractionResult(
-            content="", source="", input_type="none",
-            word_count=0, extraction_method="none",
-            error="Only one input can be provided at a time. Please provide either 'url' or 'text', not both.",
-        )
-
-    if request.text is not None:
-        if len(request.text) > MAX_TEXT_LENGTH:
-            return ExtractionResult(
-                content="", source="raw_text", input_type="text",
-                word_count=0, extraction_method="raw_text",
-                error=f"Text exceeds maximum length of {MAX_TEXT_LENGTH} characters (~10,000 words). Please shorten the input.",
-            )
-        return await extract_from_text(request.text)
-
-    return await extract_from_url(request.url)
+    return await extract_from_text(inp)
 
 
 # ---------------------------------------------------------------------------
@@ -501,18 +427,10 @@ async def _main():
     import json
 
     if len(sys.argv) < 2:
-        print("Usage:")
-        print("  python -m src.extractor <url>")
-        print("  python -m src.extractor --text 'your raw text here'")
+        print("Usage: python -m src.extractor <url or text>")
         return
 
-    flag = sys.argv[1]
-
-    if flag == "--text":
-        request = ExtractRequest(text=" ".join(sys.argv[2:]))
-    else:
-        request = ExtractRequest(url=flag)
-
+    request = ExtractRequest(input=" ".join(sys.argv[1:]))
     result = await extract(request)
     print(json.dumps(result.model_dump(), indent=2, ensure_ascii=False))
     print("\n--- content ---\n")
