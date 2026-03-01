@@ -60,7 +60,7 @@ function showResults(data) {
   // Bias metric
   const bias = data.bias ?? null;
   if (bias != null) {
-    const s = /none|low/i.test(bias) ? "good" : /moderate|medium/i.test(bias) ? "warn" : "bad";
+    const s = data.bias_state ?? (/none/i.test(bias) ? "good" : /low|moderate/i.test(bias) ? "warn" : "bad");
     const r = data.bias_reason ?? `Bias level assessed as "${bias}".`;
     applyMetric(metricBias, biasValue, biasReason, bias, r, s);
   } else {
@@ -157,10 +157,17 @@ async function runRequest() {
     // Audio: streaming response → blob URL
     const audio_url = audioBlob ? URL.createObjectURL(audioBlob) : null;
 
-    // Bias: use detected bias labels; fall back to subjectivity signal
-    const biasLabel = clearview.biases?.length
-      ? clearview.biases.join(", ")
-      : (clearview.is_subjective ? "Subjective" : "None");
+    // Bias: map server list + subjectivity → clean label + state
+    let biasLabel, biasState;
+    if (clearview.biases?.length >= 2) {
+      biasLabel = "High";     biasState = "bad";
+    } else if (clearview.biases?.length === 1) {
+      biasLabel = "Moderate"; biasState = "warn";
+    } else if (clearview.is_subjective) {
+      biasLabel = "Low";      biasState = "warn";
+    } else {
+      biasLabel = "None";     biasState = "good";
+    }
     const biasReason = clearview.bias_notes ?? clearview.subjective_notes ?? null;
 
     // Scam: boolean → label
@@ -188,6 +195,7 @@ async function runRequest() {
       word_count:         clearview.word_count,
       source:             clearview.source,
       bias:               biasLabel,
+      bias_state:         biasState,
       bias_reason:        biasReason,
       credibility:        credLabel,
       credibility_state:  credState,
