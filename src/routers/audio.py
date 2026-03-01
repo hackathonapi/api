@@ -17,11 +17,9 @@ logger = logging.getLogger(__name__)
 
 @router.post("/audio", response_class=StreamingResponse)
 async def audio_route(request: AudioRequest) -> StreamingResponse:
-    resolved_voice_id = DEFAULT_VOICE_ID
-
     try:
         audio_bytes, _ = await generate_audio(
-            request.input, resolved_voice_id
+            request.input
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
