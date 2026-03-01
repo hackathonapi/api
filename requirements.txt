@@ -10,5 +10,4 @@ pymupdf
 fpdf2
 openai
 elevenlabs
-firebase-admin
 gTTS

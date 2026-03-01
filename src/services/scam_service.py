@@ -1,8 +1,5 @@
-import asyncio
 import logging
 import os
-import re
-from typing import Any
 
 from openai import APIError, AsyncOpenAI, AuthenticationError, RateLimitError
 
@@ -10,102 +7,78 @@ from ..models.models import ScamAnalysisResult
 
 logger = logging.getLogger(__name__)
 
-_HF_SCAM_MODEL_ID = "BothBosu/bert-scam-classifier-v1.6"
 _THRESHOLD = 0.5
 _REVIEWER_MODEL = "gpt-4o-mini"
 
-_scam_classifier: Any = None
+# Weighted signal categories — (keywords, weight)
+_CATEGORIES: list[tuple[set[str], float]] = [
+    # Urgency
+    ({
+        "urgent", "urgently", "immediately", "act now", "act fast",
+        "limited time", "expires", "expiring", "deadline", "hurry",
+        "respond now", "time sensitive", "time-sensitive", "last chance",
+        "final notice", "final warning", "don't delay",
+    }, 1.0),
+    # Financial pressure
+    ({
+        "wire transfer", "bitcoin", "cryptocurrency", "crypto", "gift card",
+        "money order", "western union", "moneygram", "routing number",
+        "social security number", "tax refund", "unclaimed funds",
+        "investment opportunity", "guaranteed return", "double your money",
+    }, 2.0),
+    # Threats / account actions
+    ({
+        "account suspended", "account locked", "account disabled",
+        "account terminated", "verify your account", "confirm your account",
+        "security alert", "security warning", "unauthorized access",
+        "suspicious activity", "will be closed", "arrest warrant",
+        "legal action", "law enforcement",
+    }, 1.5),
+    # Too-good-to-be-true
+    ({
+        "you've won", "you have won", "you are selected", "congratulations you",
+        "lottery winner", "million dollar", "inheritance", "free money",
+        "guaranteed income", "risk-free", "no cost to you", "make money fast",
+        "work from home and earn",
+    }, 2.0),
+    # Impersonation signals
+    ({
+        "irs", "internal revenue service", "social security administration",
+        "fbi", "federal bureau of investigation", "microsoft support",
+        "apple support", "amazon support", "paypal support",
+    }, 2.5),
+    # Phishing actions
+    ({
+        "click here", "click the link", "click below",
+        "download the attachment", "open the attachment",
+        "provide your", "enter your password", "confirm your password",
+        "update your billing", "update your payment", "verify your identity",
+        "submit your information",
+    }, 1.5),
+]
+
+_TOTAL_WEIGHT = sum(w for _, w in _CATEGORIES)
 
 
-def _chunk_text(text: str, max_chars: int = 1800) -> list[str]:
-    text = text.strip()
-    if len(text) <= max_chars:
-        return [text]
+def _score(text: str) -> float:
+    text_lower = text.lower()
+    words = text.split()
+    score = 0.0
 
-    sentences = re.split(r"(?<=[.!?])\s+", text)
-    chunks: list[str] = []
-    current = ""
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-        if len(current) + len(sentence) + 1 <= max_chars:
-            current = f"{current} {sentence}".strip()
-        else:
-            if current:
-                chunks.append(current)
-            current = sentence
-    if current:
-        chunks.append(current)
-    return chunks[:10]
+    for signals, weight in _CATEGORIES:
+        hits = sum(1 for s in signals if s in text_lower)
+        score += min(hits / 3.0, 1.0) * weight
 
+    # Excessive ALL-CAPS words (scam signal)
+    if words:
+        caps_ratio = sum(1 for w in words if w.isupper() and len(w) > 2) / len(words)
+        score += min(caps_ratio * 5, 1.0) * 0.5
 
-def _load_classifier_sync():
-    global _scam_classifier
-    if _scam_classifier is not None:
-        return _scam_classifier
-    try:
-        from transformers import pipeline
-    except ImportError as exc:
-        raise ValueError("transformers is required. Install dependencies from requirements.txt.") from exc
-    _scam_classifier = pipeline(
-        task="text-classification",
-        model=_HF_SCAM_MODEL_ID,
-        tokenizer=_HF_SCAM_MODEL_ID,
-        device=-1,
-        top_k=None,
-    )
-    return _scam_classifier
+    # Excessive exclamation marks
+    exclaim_ratio = min(text.count("!") / max(len(words), 1) * 10, 1.0)
+    score += exclaim_ratio * 0.5
 
-
-def _run_classifier_sync(text: str) -> tuple[float, float]:
-    classifier = _load_classifier_sync()
-    chunks = _chunk_text(text)
-    raw = classifier(chunks, truncation=True, max_length=512)
-
-    if raw and isinstance(raw[0], dict):
-        raw = [raw]
-
-    scam_scores: list[float] = []
-    non_scam_scores: list[float] = []
-
-    for batch in raw:
-        row: dict[str, float] = {}
-        for item in batch:
-            label = str(item.get("label", "")).strip().upper().replace("_", "-")
-            if label == "LABEL-1":
-                label = "SCAM"
-            elif label == "LABEL-0":
-                label = "NON-SCAM"
-            row[label] = float(item.get("score", 0.0))
-
-        scam = row.get("SCAM", 0.0)
-        non_scam = row.get("NON-SCAM", 0.0)
-        if scam == 0.0 and non_scam > 0.0:
-            scam = 1.0 - non_scam
-        if non_scam == 0.0 and scam > 0.0:
-            non_scam = 1.0 - scam
-        total = scam + non_scam
-        if total > 0:
-            scam /= total
-            non_scam /= total
-        scam_scores.append(scam)
-        non_scam_scores.append(non_scam)
-
-    if not scam_scores:
-        raise RuntimeError("Classifier returned no scores.")
-
-    scam_prob = sum(scam_scores) / len(scam_scores)
-    non_scam_prob = sum(non_scam_scores) / len(non_scam_scores)
-    total = scam_prob + non_scam_prob
-    if total > 0:
-        scam_prob /= total
-        non_scam_prob /= total
-    else:
-        scam_prob = 0.5
-        non_scam_prob = 0.5
-
-    return round(scam_prob, 4), round(non_scam_prob, 4)
+    return round(min(score / (_TOTAL_WEIGHT + 1.0), 1.0), 4)
 
 
 def _fallback_notes(scam_probability: float, is_scam: bool) -> str:
@@ -134,7 +107,6 @@ async def _generate_notes(text: str, scam_probability: float, is_scam: bool) -> 
         "In 2-3 plain sentences, explain whether this content is safe or suspicious "
         "and what the reader should do."
     )
-
     try:
         client = AsyncOpenAI(api_key=api_key)
         response = await client.chat.completions.create(
@@ -159,11 +131,18 @@ async def _generate_notes(text: str, scam_probability: float, is_scam: bool) -> 
 
 
 async def detect_scam(text: str) -> ScamAnalysisResult:
-    # TEMPORARILY DISABLED — models removed for deployment testing
+    if not text or not text.strip():
+        raise ValueError("Text cannot be empty for scam analysis.")
+
+    scam_prob = _score(text)
+    non_scam_prob = round(1.0 - scam_prob, 4)
+    is_scam = scam_prob >= _THRESHOLD
+    notes = await _generate_notes(text, scam_prob, is_scam)
+
     return ScamAnalysisResult(
-        scam_probability=0.0,
-        non_scam_probability=1.0,
-        is_scam=False,
-        notes="Scam analysis temporarily disabled.",
+        scam_probability=scam_prob,
+        non_scam_probability=non_scam_prob,
+        is_scam=is_scam,
+        notes=notes,
         error=None,
     )

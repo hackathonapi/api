@@ -1,8 +1,6 @@
-import asyncio
 import logging
 import os
 import re
-from typing import Any
 
 from openai import APIError, AsyncOpenAI, AuthenticationError, RateLimitError
 
@@ -10,71 +8,61 @@ from ..models.models import SentimentAnalysisResult
 
 logger = logging.getLogger(__name__)
 
-_HF_BIAS_MODEL_ID = "cirimus/modernbert-large-bias-type-classifier"
-_BIAS_CUTOFF = 0.7
+_BIAS_CUTOFF = 0.5
 _EXPLAINER_MODEL = "gpt-4o-mini"
 
-_bias_classifier: Any = None
+# Each category maps to a set of signal phrases and a normalisation cap
+_BIAS_CATEGORIES: dict[str, set[str]] = {
+    "political bias": {
+        "radical", "extremist", "far-left", "far-right", "socialist", "fascist",
+        "liberal agenda", "conservative agenda", "fake news", "mainstream media",
+        "deep state", "globalist", "nationalist", "communist", "marxist",
+        "left-wing propaganda", "right-wing propaganda", "biased media",
+    },
+    "emotional manipulation": {
+        "must act now", "wake up", "they don't want you to know",
+        "what they're hiding", "secret agenda", "exposing the truth",
+        "think for yourself", "open your eyes", "the real truth",
+        "you won't believe", "shocking revelation", "hidden agenda",
+    },
+    "loaded language": {
+        "regime", "invasion", "plague", "epidemic of", "infested",
+        "destroy", "eliminate", "eradicate", "thugs", "criminals",
+        "radical agenda", "toxic", "poison", "epidemic", "crisis",
+        "catastrophe", "collapse", "meltdown", "rampage",
+    },
+    "gender bias": {
+        "women are", "men are", "females are", "males are",
+        "like a woman", "like a man", "typical woman", "typical man",
+        "women can't", "men can't", "women don't", "men don't",
+        "women should", "men should stay",
+    },
+    "corporate bias": {
+        "big pharma", "big tech", "mainstream media", "corporate agenda",
+        "wall street", "the elite", "the establishment", "corporate overlords",
+        "follow the money", "paid by", "funded by lobbyists",
+    },
+}
+
+# How many hits (per category) to reach a score of 1.0
+_SATURATION = 3
 
 
-def _chunk_text(text: str, max_chars: int = 2500) -> list[str]:
-    text = text.strip()
-    if len(text) <= max_chars:
-        return [text]
-
-    sentences = re.split(r"(?<=[.!?])\s+", text)
-    chunks: list[str] = []
-    current = ""
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-        if len(current) + len(sentence) + 1 <= max_chars:
-            current = f"{current} {sentence}".strip()
-        else:
-            if current:
-                chunks.append(current)
-            current = sentence
-    if current:
-        chunks.append(current)
-    return chunks[:12]
-
-
-def _load_classifier_sync():
-    global _bias_classifier
-    if _bias_classifier is not None:
-        return _bias_classifier
-    try:
-        from transformers import pipeline
-    except ImportError as exc:
-        raise ValueError("transformers is required. Install dependencies from requirements.txt.") from exc
-    _bias_classifier = pipeline(
-        task="text-classification",
-        model=_HF_BIAS_MODEL_ID,
-        tokenizer=_HF_BIAS_MODEL_ID,
-        device=-1,
-        top_k=None,
-    )
-    return _bias_classifier
-
-
-def _run_classifier_sync(text: str) -> dict[str, float]:
-    classifier = _load_classifier_sync()
-    chunks = _chunk_text(text)
-    raw = classifier(chunks, truncation=True, max_length=512)
-
-    if raw and isinstance(raw[0], dict):
-        raw = [raw]
+def _score_categories(text: str) -> dict[str, float]:
+    text_lower = text.lower()
+    words = re.findall(r"\b\w+\b", text_lower)
+    word_count = max(len(words), 1)
 
     scores: dict[str, float] = {}
-    for batch in raw:
-        for item in batch:
-            label = str(item.get("label", "")).strip().lower().replace("_", " ")
-            score = float(item.get("score", 0.0))
-            if label:
-                scores[label] = max(scores.get(label, 0.0), score)
+    for category, signals in _BIAS_CATEGORIES.items():
+        hits = sum(1 for s in signals if s in text_lower)
+        # Normalise: _SATURATION hits → score of 1.0; scale by text length so
+        # short texts aren't unfairly penalised
+        length_factor = min(word_count / 200, 1.0)  # generous for short texts
+        raw = min(hits / _SATURATION, 1.0) * length_factor
+        scores[category] = round(raw, 4)
 
-    return {k: round(v, 4) for k, v in sorted(scores.items(), key=lambda x: x[1], reverse=True)}
+    return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
 
 
 def _fallback_notes(biases_above_cutoff: list[str]) -> str:
@@ -135,11 +123,17 @@ async def _generate_notes(text: str, biases_above_cutoff: list[str]) -> str:
 
 
 async def analyze_sentiment(text: str) -> SentimentAnalysisResult:
-    # TEMPORARILY DISABLED — models removed for deployment testing
+    if not text or not text.strip():
+        raise ValueError("Text cannot be empty for sentiment analysis.")
+
+    bias_scores = _score_categories(text)
+    biases_above_cutoff = [k for k, v in bias_scores.items() if v >= _BIAS_CUTOFF]
+    notes = await _generate_notes(text, biases_above_cutoff)
+
     return SentimentAnalysisResult(
         bias_cutoff=_BIAS_CUTOFF,
-        bias_scores={},
-        biases_above_cutoff=[],
-        notes="Bias analysis temporarily disabled.",
+        bias_scores=bias_scores,
+        biases_above_cutoff=biases_above_cutoff,
+        notes=notes,
         error=None,
     )
