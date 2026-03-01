@@ -12,7 +12,7 @@ import httpx
 import pymupdf
 from newspaper import Article, Config
 
-from ..models.extract import ExtractRequest, ExtractionResult
+from ..models.models import ExtractionResult
 
 
 # ---------------------------------------------------------------------------
@@ -343,8 +343,8 @@ async def extract_from_text(text: str) -> ExtractionResult:
 MAX_TEXT_LENGTH = 50_000  # ~10,000 words
 
 
-async def extract(request: ExtractRequest) -> ExtractionResult:
-    inp = request.input.strip()
+async def extract(input: str) -> ExtractionResult:
+    inp = input.strip()
 
     if not inp:
         raise ValueError("Input cannot be empty.")
@@ -372,8 +372,7 @@ async def _main():
         print("Usage: python -m src.services.extractor_service <url or text>")
         return
 
-    request = ExtractRequest(input=" ".join(sys.argv[1:]))
-    result = await extract(request)
+    result = await extract(" ".join(sys.argv[1:]))
     print(json.dumps(result.model_dump(), indent=2, ensure_ascii=False))
     print("\n--- content ---\n")
     print(result.content)

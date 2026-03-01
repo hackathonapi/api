@@ -1,8 +1,7 @@
 import math
+from typing import Optional
 
 from fpdf import FPDF
-
-from ..models.clearview import ClearviewData
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -62,7 +61,13 @@ class _ClearviewPDF(FPDF):
 # Public interface
 # ---------------------------------------------------------------------------
 
-def generate_clearview(data: ClearviewData) -> bytes:
+def generate_clearview(
+    title: str,
+    content: str,
+    source: str,
+    word_count: int,
+    summary: Optional[str] = None,
+) -> bytes:
     pdf = _ClearviewPDF(format="A4")
     pdf.set_auto_page_break(auto=True, margin=20)
     pdf.set_margins(_MARGIN, _MARGIN, _MARGIN)
@@ -71,11 +76,11 @@ def generate_clearview(data: ClearviewData) -> bytes:
     # ── Title ──────────────────────────────────────────────────────────────
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(15, 15, 15)
-    pdf.multi_cell(_TEXT_WIDTH, 9, txt=_sanitize(data.title or "Article Clearview"), align="L")
+    pdf.multi_cell(_TEXT_WIDTH, 9, txt=_sanitize(title or "Article Clearview"), align="L")
     pdf.ln(2)
 
     # ── Byline: Reading Time | Words ───────────────────────────────────────
-    byline = f"Reading Time: {_reading_time(data.word_count)}  |  {data.word_count} words"
+    byline = f"Reading Time: {_reading_time(word_count)}  |  {word_count} words"
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(_TEXT_WIDTH, 5, txt=byline, align="L")
@@ -86,7 +91,7 @@ def generate_clearview(data: ClearviewData) -> bytes:
     # ── Article body ───────────────────────────────────────────────────────
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(30, 30, 30)
-    paragraphs = [p.strip() for p in _sanitize(data.content).split("\n\n") if p.strip()]
+    paragraphs = [p.strip() for p in _sanitize(content).split("\n\n") if p.strip()]
     for para in paragraphs:
         para = " ".join(line.strip() for line in para.splitlines() if line.strip())
         pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=para, align="L")
@@ -96,25 +101,25 @@ def generate_clearview(data: ClearviewData) -> bytes:
     _divider(pdf)
 
     # ── Summary ────────────────────────────────────────────────────────────
-    if data.summary:
+    if summary:
         pdf.set_font("Helvetica", "B", 9)
         pdf.set_text_color(100, 100, 100)
         pdf.cell(_TEXT_WIDTH, 6, txt="Summary", align="L")
         pdf.ln(6)
         pdf.set_font("Helvetica", "", 9.5)
         pdf.set_text_color(70, 70, 70)
-        summary_text = " ".join(_sanitize(data.summary).split())
+        summary_text = " ".join(_sanitize(summary).split())
         pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=summary_text, align="L")
         pdf.ln(5)
 
     # ── Source ─────────────────────────────────────────────────────────────
-    if data.source:
+    if source:
         pdf.set_font("Helvetica", "B", 9)
         pdf.set_text_color(100, 100, 100)
         pdf.cell(_TEXT_WIDTH, 6, txt="Source", align="L")
         pdf.ln(6)
         pdf.set_font("Helvetica", "", 9.5)
         pdf.set_text_color(130, 130, 130)
-        pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=_sanitize(data.source), align="L")
+        pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=_sanitize(source), align="L")
 
     return bytes(pdf.output())

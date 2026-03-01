@@ -3,12 +3,14 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class ClearviewData(BaseModel):
-    title: str = ""
-    content: str = Field(..., min_length=1)
-    source: str = ""
-    word_count: int = 0
-    summary: Optional[str] = None
+class ExtractionResult(BaseModel):
+    title: str
+    content: str
+    input_type: str
+    source: str
+    word_count: int
+    extraction_method: str
+    error: Optional[str]
 
 
 class ClearviewResponse(BaseModel):

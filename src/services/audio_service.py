@@ -5,13 +5,12 @@ from typing import Optional
 from elevenlabs.client import AsyncElevenLabs
 from elevenlabs.core import ApiError
 
-from ..models.extract import ExtractRequest
-from ..models.audiobook import MAX_CHARS
 from ..services.extractor_service import extract
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel
+DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel — clear neutral narration
+MAX_CHARS = 5_000  # ElevenLabs practical per-request limit
 
 
 async def generate_audio(input: str, voice_id: Optional[str] = None) -> bytes:
@@ -19,7 +18,7 @@ async def generate_audio(input: str, voice_id: Optional[str] = None) -> bytes:
         raise ValueError("ELEVENLABS_API_KEY is not configured.")
 
     # Extract text from URL or plain text input
-    result = await extract(ExtractRequest(input=input))
+    result = await extract(input)
     if result.error:
         raise ValueError(result.error)
 
