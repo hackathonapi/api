@@ -23,7 +23,7 @@ def _gtts_fallback(text: str) -> bytes:
     return buf.getvalue()
 
 
-async def generate_audio(input: str, voice_id: Optional[str] = None) -> tuple[bytes, ExtractionResult]:
+async def generate_audio(input: str) -> tuple[bytes, ExtractionResult]:
     result = await extract(input)
     if result.error:
         raise ValueError(result.error)
@@ -34,7 +34,7 @@ async def generate_audio(input: str, voice_id: Optional[str] = None) -> tuple[by
 
     api_key = os.environ.get("ELEVENLABS_API_KEY")
     if api_key:
-        resolved_voice = voice_id or DEFAULT_VOICE_ID
+        resolved_voice = DEFAULT_VOICE_ID
         client = AsyncElevenLabs(api_key=api_key)
         try:
             audio_stream = client.text_to_speech.convert(

@@ -9,7 +9,6 @@ class InputRequest(BaseModel):
 
 class AudioRequest(BaseModel):
     input: str = Field(..., min_length=1)
-    voice_id: Optional[str] = None
 
 
 class ExtractionResult(BaseModel):

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/audio", response_class=StreamingResponse)
 async def audio_route(request: AudioRequest) -> StreamingResponse:
-    resolved_voice_id = request.voice_id or DEFAULT_VOICE_ID
+    resolved_voice_id = DEFAULT_VOICE_ID
 
     try:
         audio_bytes, _ = await generate_audio(
