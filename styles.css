@@ -355,12 +355,12 @@ body::after {
 #results { display: flex; flex-direction: column; gap: 1rem; }
 
 /* stagger continues the top-to-bottom page sequence after input card */
-#results.show .pdf-card                { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .62s both; }
-#results.show .sidebar > *:nth-child(1){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .70s both; }
-#results.show .sidebar > *:nth-child(2){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .78s both; }
-#results.show .sidebar > *:nth-child(3){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .86s both; }
-#results.show .sidebar > *:nth-child(4){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .94s both; }
-#results.show .sidebar > *:nth-child(5){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) 1.02s both; }
+#results.show .results-grid > *:nth-child(1) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .62s both; }
+#results.show .results-grid > *:nth-child(2) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .68s both; }
+#results.show .results-grid > *:nth-child(3) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .74s both; }
+#results.show .results-grid > *:nth-child(4) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .80s both; }
+#results.show .results-grid > *:nth-child(5) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .86s both; }
+#results.show .results-grid > *:nth-child(6) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .92s both; }
 
 .mc {
   position: relative;
@@ -481,13 +481,16 @@ body::after {
 }
 
 /* ─────────────────────────────────────────────────
-   Results two-column grid
+   Results six-card grid
 ───────────────────────────────────────────────── */
 .results-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
-  align-items: stretch; /* both columns same height */
+}
+
+.results-grid > * {
+  min-height: 160px;
 }
 
 /* ─────────────────────────────────────────────────
@@ -523,58 +526,48 @@ body::after {
 .btn-dl[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
 
 /* ─────────────────────────────────────────────────
-   PDF card
+   Download card (PDF)
 ───────────────────────────────────────────────── */
-.pdf-card {
+.dl-card {
   display: flex;
   flex-direction: column;
-  /* height is set by the stretched grid row */
 }
 
-.pdf-viewer {
-  flex: 1;           /* fill remaining card height */
-  min-height: 280px; /* floor so it's never tiny */
-  border: 1.5px solid var(--border-subtle);
-  border-radius: var(--r-sm);
-  background: var(--surface-raised);
-  overflow: hidden;
+.dl-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.pdf-empty {
-  height: 100%;
+.btn-dl-large {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.7rem;
-  padding: 1.5rem;
-  text-align: center;
+  gap: 0.55rem;
+  padding: 1rem;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1.5px dashed #BFDBFE;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: background .15s, border-color .15s, color .15s;
 }
 
-.pdf-empty-title { color: #A8A29E; font-size: 0.875rem; font-weight: 500; }
+.btn-dl-large:hover { background: #DBEAFE; border-color: var(--accent); }
+.btn-dl-large[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
 
-#pdf-frame { display: block; width: 100%; height: 100%; border: none; }
-
-.pdf-caption {
-  margin-top: 0.625rem;
-  font-size: 0.775rem;
+.dl-caption {
+  font-size: 0.74rem;
   color: #A8A29E;
-  line-height: 1.6;
   text-align: center;
+  line-height: 1.55;
 }
-
-/* ─────────────────────────────────────────────────
-   Sidebar
-───────────────────────────────────────────────── */
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: stretch;
-}
-
-/* don't lift the large PDF card on hover */
-.pdf-card:hover { transform: none; box-shadow: var(--shadow); }
 
 .stats-card { padding: 1.375rem 1.5rem; }
 
@@ -698,9 +691,12 @@ body::after {
    Responsive
 ───────────────────────────────────────────────── */
 @media (max-width: 800px) {
-  .results-grid { grid-template-columns: 1fr; align-items: start; }
-  .pdf-viewer { flex: none; height: clamp(260px, 48vw, 400px); }
+  .results-grid { grid-template-columns: repeat(2, 1fr); }
   .hero h1 { white-space: normal; }
+}
+
+@media (max-width: 520px) {
+  .results-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 580px) {
