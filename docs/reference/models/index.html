@@ -998,11 +998,6 @@
 </thead>
 <tbody>
 <tr>
-<td><code>id</code></td>
-<td><code>string</code></td>
-<td>UUID uniquely identifying this analysis. Use with <code>GET /clearview/{id}</code>.</td>
-</tr>
-<tr>
 <td><code>title</code></td>
 <td><code>string</code></td>
 <td>Extracted document title</td>
@@ -1028,19 +1023,9 @@
 <td>Auto-generated summary. <code>null</code> if summarization failed.</td>
 </tr>
 <tr>
-<td><code>is_scam</code></td>
-<td><code>boolean</code></td>
-<td><code>true</code> if the content was classified as potentially fraudulent</td>
-</tr>
-<tr>
 <td><code>scam_notes</code></td>
 <td><code>string \| null</code></td>
 <td>Human-readable explanation of the scam classification</td>
-</tr>
-<tr>
-<td><code>is_subjective</code></td>
-<td><code>boolean</code></td>
-<td><code>true</code> if the content is predominantly opinionated or editorial</td>
 </tr>
 <tr>
 <td><code>subjective_notes</code></td>
@@ -1048,14 +1033,14 @@
 <td>Human-readable explanation of the objectivity classification</td>
 </tr>
 <tr>
-<td><code>biases</code></td>
-<td><code>string[]</code></td>
-<td>Bias category labels whose confidence scores met or exceeded the threshold. Empty if none detected.</td>
-</tr>
-<tr>
 <td><code>bias_notes</code></td>
 <td><code>string \| null</code></td>
 <td>Human-readable explanation of detected biases</td>
+</tr>
+<tr>
+<td><code>ai_section</code></td>
+<td><code>string \| null</code></td>
+<td>Combined analysis section text used in output</td>
 </tr>
 <tr>
 <td><code>pdf</code></td>
@@ -1070,21 +1055,18 @@
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;3fa85f64-5717-4562-b3fc-2c963f66afa6&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example Article&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Full article text...&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://example.com/article&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">&quot;word_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">842</span><span class="p">,</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A brief summary.&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">&quot;is_scam&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">&quot;scam_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="nt">&quot;is_subjective&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="nt">&quot;subjective_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The article contains editorial language.&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span><span class="nt">&quot;biases&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;political_left&quot;</span><span class="p">],</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span><span class="nt">&quot;bias_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;One bias type exceeded the confidence threshold.&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="nt">&quot;pdf&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;base64 string&gt;&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="p">}</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example Article&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Full article text...&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://example.com/article&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;word_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">842</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A brief summary.&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;scam_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">&quot;subjective_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The article contains editorial language.&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">&quot;bias_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;One bias type exceeded the confidence threshold.&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="nt">&quot;ai_section&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Combined AI analysis content.&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="nt">&quot;pdf&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;base64 string&gt;&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="p">}</span>
 </code></pre></div>
 <hr />
 <h2 id="internal-models">Internal models<a class="headerlink" href="#internal-models" title="Permanent link">&para;</a></h2>

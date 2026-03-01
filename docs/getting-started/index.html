@@ -487,17 +487,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#step-3-retrieve-the-pdf-later-by-id" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 3 — Retrieve the PDF later by ID
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -828,17 +817,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#step-3-retrieve-the-pdf-later-by-id" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 3 — Retrieve the PDF later by ID
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -900,10 +878,6 @@
 <td><strong>ElevenLabs</strong></td>
 <td>Text-to-speech (<code>ELEVENLABS_API_KEY</code>)</td>
 </tr>
-<tr>
-<td><strong>Firebase</strong></td>
-<td>Persistence — Firestore + Cloud Storage</td>
-</tr>
 </tbody>
 </table>
 <hr />
@@ -925,7 +899,6 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>OPENAI_API_KEY=sk-...
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ELEVENLABS_API_KEY=...
 </code></pre></div>
-<p>Place your Firebase service account file at <code>firebase-credentials.json</code> in the project root (download from the Firebase Console under Project Settings → Service Accounts).</p>
 <hr />
 <h2 id="running-the-api">Running the API<a class="headerlink" href="#running-the-api" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uvicorn<span class="w"> </span>src.main:app<span class="w"> </span>--reload
@@ -983,9 +956,9 @@
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>  <span class="c1"># analysis takes time — several ML models run in parallel</span>
 <a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">)</span>
 <a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">data</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Record ID:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is scam:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;is_scam&quot;</span><span class="p">])</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Biases detected:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;biases&quot;</span><span class="p">])</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Word count:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;word_count&quot;</span><span class="p">])</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Scam notes:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scam_notes&quot;</span><span class="p">))</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Bias notes:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bias_notes&quot;</span><span class="p">))</span>
 </code></pre></div>
 </div>
 <div class="tabbed-block">
@@ -995,14 +968,14 @@
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">input</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;https://www.bbc.com/news/articles/example&quot;</span><span class="w"> </span><span class="p">}),</span>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="p">});</span>
 <a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">json</span><span class="p">();</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Record ID:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Is scam:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">is_scam</span><span class="p">);</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Biases:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">biases</span><span class="p">);</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Word count:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">word_count</span><span class="p">);</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Scam notes:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">scam_notes</span><span class="p">);</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Bias notes:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">bias_notes</span><span class="p">);</span>
 </code></pre></div>
 </div>
 </div>
 </div>
-<p>The response includes a <code>pdf</code> field containing the full report as a <strong>base64-encoded string</strong>, and an <code>id</code> you can use to retrieve the PDF later.</p>
+<p>The response includes a <code>pdf</code> field containing the full report as a <strong>base64-encoded string</strong>.</p>
 <h3 id="step-2-save-the-pdf">Step 2 — Save the PDF<a class="headerlink" href="#step-2-save-the-pdf" title="Permanent link">&para;</a></h3>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Python</label><label for="__tabbed_3_2">JavaScript</label></div>
 <div class="tabbed-content">
@@ -1029,30 +1002,6 @@
 </div>
 </div>
 </div>
-<h3 id="step-3-retrieve-the-pdf-later-by-id">Step 3 — Retrieve the PDF later by ID<a class="headerlink" href="#step-3-retrieve-the-pdf-later-by-id" title="Permanent link">&para;</a></h3>
-<div class="tabbed-set tabbed-alternate" data-tabs="4:3"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">curl</label><label for="__tabbed_4_2">Python</label><label for="__tabbed_4_3">JavaScript</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>curl<span class="w"> </span>-o<span class="w"> </span>report.pdf<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="s2">&quot;http://127.0.0.1:8000/clearview/&lt;record_id&gt;&quot;</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">r</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;http://127.0.0.1:8000/clearview/</span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;report.pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">pdfRes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="sb">`http://127.0.0.1:8000/clearview/</span><span class="si">${</span><span class="nx">data</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">blob</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">pdfRes</span><span class="p">.</span><span class="nx">blob</span><span class="p">();</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="kd">const</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">URL</span><span class="p">.</span><span class="nx">createObjectURL</span><span class="p">(</span><span class="nx">blob</span><span class="p">);</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1">// open or download the blob as needed</span>
-</code></pre></div>
-</div>
-</div>
-</div>
-<hr />
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../endpoints/clearview/">Clearview endpoint reference</a> — full request/response details</li>

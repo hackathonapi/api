@@ -527,78 +527,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example-response" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example response
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#get-clearviewrecord_id" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GET /clearview/{record_id}
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="GET /clearview/{record_id}">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#request_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Request
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#response_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Response
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#examples_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -795,78 +723,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example-response" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example response
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#get-clearviewrecord_id" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GET /clearview/{record_id}
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="GET /clearview/{record_id}">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#request_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Request
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#response_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Response
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#examples_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -893,14 +749,8 @@
 
 
 <h1 id="clearview-analysis-pdf">Clearview — Analysis &amp; PDF<a class="headerlink" href="#clearview-analysis-pdf" title="Permanent link">&para;</a></h1>
-<p>These endpoints analyze a document for bias, scam likelihood, and subjectivity, then produce a downloadable PDF report.</p>
-<hr />
 <h2 id="post-clearview">POST /clearview<a class="headerlink" href="#post-clearview" title="Permanent link">&para;</a></h2>
-<p>Accepts a URL, file path, or raw text. Runs four analyses in parallel (summarization, scam detection, objectivity, bias), generates a PDF report, and returns everything in a single response.</p>
-<div class="admonition note">
-<p class="admonition-title">Processing time</p>
-<p>Several ML models run in parallel. Expect <strong>10–30 seconds</strong> depending on document length.</p>
-</div>
+<p>Accepts a URL, file path, or raw text. The API extracts content, runs analysis, and returns a base64-encoded PDF report in the JSON response.</p>
 <h3 id="request">Request<a class="headerlink" href="#request" title="Permanent link">&para;</a></h3>
 <p><strong>Body</strong> — <code>application/json</code></p>
 <table>
@@ -917,7 +767,7 @@
 <td><code>input</code></td>
 <td><code>string</code></td>
 <td>Yes</td>
-<td>A URL to an article, a local file path, or raw text to analyze</td>
+<td>URL, local file path, or raw text to analyze</td>
 </tr>
 </tbody>
 </table>
@@ -937,11 +787,6 @@
 </thead>
 <tbody>
 <tr>
-<td><code>id</code></td>
-<td><code>string</code></td>
-<td>UUID — use with <code>GET /clearview/{id}</code> to retrieve the PDF later</td>
-</tr>
-<tr>
 <td><code>title</code></td>
 <td><code>string</code></td>
 <td>Extracted document title</td>
@@ -954,47 +799,37 @@
 <tr>
 <td><code>source</code></td>
 <td><code>string</code></td>
-<td>Source URL or path</td>
+<td>Source URL or input path</td>
 </tr>
 <tr>
 <td><code>word_count</code></td>
 <td><code>integer</code></td>
-<td>Total word count of the extracted content</td>
+<td>Word count of extracted content</td>
 </tr>
 <tr>
 <td><code>summary</code></td>
 <td><code>string \| null</code></td>
-<td>Auto-generated summary</td>
-</tr>
-<tr>
-<td><code>is_scam</code></td>
-<td><code>boolean</code></td>
-<td>Whether the content was flagged as potentially fraudulent</td>
+<td>Generated summary</td>
 </tr>
 <tr>
 <td><code>scam_notes</code></td>
 <td><code>string \| null</code></td>
-<td>Explanation of the scam classification</td>
-</tr>
-<tr>
-<td><code>is_subjective</code></td>
-<td><code>boolean</code></td>
-<td>Whether the content is predominantly opinionated/editorial</td>
+<td>Scam analysis notes</td>
 </tr>
 <tr>
 <td><code>subjective_notes</code></td>
 <td><code>string \| null</code></td>
-<td>Explanation of the objectivity classification</td>
-</tr>
-<tr>
-<td><code>biases</code></td>
-<td><code>string[]</code></td>
-<td>List of bias labels detected above the confidence threshold</td>
+<td>Objectivity analysis notes</td>
 </tr>
 <tr>
 <td><code>bias_notes</code></td>
 <td><code>string \| null</code></td>
-<td>Explanation of the bias classification</td>
+<td>Bias analysis notes</td>
+</tr>
+<tr>
+<td><code>ai_section</code></td>
+<td><code>string \| null</code></td>
+<td>Combined AI analysis text</td>
 </tr>
 <tr>
 <td><code>pdf</code></td>
@@ -1004,167 +839,12 @@
 <tr>
 <td><code>error</code></td>
 <td><code>string \| null</code></td>
-<td>Non-null if a non-fatal error occurred during processing</td>
+<td>Non-fatal error detail if present</td>
 </tr>
 </tbody>
 </table>
-<p><strong>422 Unprocessable Entity</strong> — content could not be extracted from the input.</p>
+<p><strong>422 Unprocessable Entity</strong> — content could not be extracted.</p>
 <p><strong>500 Internal Server Error</strong> — PDF generation failed.</p>
-<h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">curl</label><label for="__tabbed_1_2">Python</label><label for="__tabbed_1_3">JavaScript</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://clearwayapi.tech/clearview<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;input&quot;: &quot;https://www.bbc.com/news/articles/example&quot;}&#39;</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">r</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="s2">&quot;https://clearwayapi.tech/clearview&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;https://www.bbc.com/news/articles/example&quot;</span><span class="p">},</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">data</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Record ID:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is scam:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;is_scam&quot;</span><span class="p">])</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is subjective:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;is_subjective&quot;</span><span class="p">])</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Biases detected:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;biases&quot;</span><span class="p">])</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1"># Save the PDF report</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;pdf&quot;</span><span class="p">])</span>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;report.pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pdf_bytes</span><span class="p">)</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s2">&quot;https://clearwayapi.tech/clearview&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;Content-Type&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;application/json&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">input</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;https://www.bbc.com/news/articles/example&quot;</span><span class="w"> </span><span class="p">}),</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">});</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">res</span><span class="p">.</span><span class="nx">ok</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="sb">`Error: </span><span class="si">${</span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">json</span><span class="p">();</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Record ID:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Is scam:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">is_scam</span><span class="p">);</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Biases:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">biases</span><span class="p">);</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1">// Decode and download the PDF</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="kd">const</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">atob</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">pdf</span><span class="p">);</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="kd">const</span><span class="w"> </span><span class="nx">arr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Uint8Array</span><span class="p">(</span><span class="nx">bytes</span><span class="p">.</span><span class="nx">length</span><span class="p">).</span><span class="nx">map</span><span class="p">((</span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">bytes</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">));</span>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="kd">const</span><span class="w"> </span><span class="nx">blob</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Blob</span><span class="p">([</span><span class="nx">arr</span><span class="p">],</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;application/pdf&quot;</span><span class="w"> </span><span class="p">});</span>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="kd">const</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">URL</span><span class="p">.</span><span class="nx">createObjectURL</span><span class="p">(</span><span class="nx">blob</span><span class="p">);</span>
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="kd">const</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">);</span>
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="nx">a</span><span class="p">.</span><span class="nx">href</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">url</span><span class="p">;</span>
-<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="nx">a</span><span class="p">.</span><span class="nx">download</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sb">`</span><span class="si">${</span><span class="nx">data</span><span class="p">.</span><span class="nx">title</span><span class="si">}</span><span class="sb">.pdf`</span><span class="p">;</span>
-<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="nx">a</span><span class="p">.</span><span class="nx">click</span><span class="p">();</span>
-</code></pre></div>
-</div>
-</div>
-</div>
-<h3 id="example-response">Example response<a class="headerlink" href="#example-response" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;3fa85f64-5717-4562-b3fc-2c963f66afa6&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example News Article&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Full extracted article text...&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.bbc.com/news/articles/example&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;word_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">842</span><span class="p">,</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A brief summary of the article...&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nt">&quot;is_scam&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="nt">&quot;scam_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span><span class="nt">&quot;is_subjective&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span><span class="nt">&quot;subjective_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The article uses strongly opinionated language in several sections.&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span><span class="nt">&quot;biases&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;political_left&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;emotional_appeal&quot;</span><span class="p">],</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span><span class="nt">&quot;bias_notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Two bias types exceeded the confidence threshold.&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span><span class="nt">&quot;pdf&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;base64-encoded PDF&gt;&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="p">}</span>
-</code></pre></div>
-<hr />
-<h2 id="get-clearviewrecord_id">GET /clearview/{record_id}<a class="headerlink" href="#get-clearviewrecord_id" title="Permanent link">&para;</a></h2>
-<p>Downloads the PDF report for a previously processed document. The <code>record_id</code> is the <code>id</code> field returned by <code>POST /clearview</code>.</p>
-<h3 id="request_1">Request<a class="headerlink" href="#request_1" title="Permanent link">&para;</a></h3>
-<p><strong>Path parameter</strong></p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>record_id</code></td>
-<td><code>string</code></td>
-<td>UUID returned in the <code>id</code> field of a <code>POST /clearview</code> response</td>
-</tr>
-</tbody>
-</table>
-<h3 id="response_1">Response<a class="headerlink" href="#response_1" title="Permanent link">&para;</a></h3>
-<p><strong>200 OK</strong> — <code>application/pdf</code></p>
-<p>The PDF file is returned as a binary stream.</p>
-<table>
-<thead>
-<tr>
-<th>Header</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Content-Type</code></td>
-<td><code>application/pdf</code></td>
-</tr>
-<tr>
-<td><code>Content-Disposition</code></td>
-<td><code>attachment; filename="&lt;title&gt;.pdf"</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>404 Not Found</strong> — no record exists for the given ID.</p>
-<h3 id="examples_1">Examples<a class="headerlink" href="#examples_1" title="Permanent link">&para;</a></h3>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">curl</label><label for="__tabbed_2_2">Python</label><label for="__tabbed_2_3">JavaScript</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-o<span class="w"> </span>report.pdf<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="s2">&quot;https://clearwayapi.tech/clearview/3fa85f64-5717-4562-b3fc-2c963f66afa6&quot;</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">record_id</span> <span class="o">=</span> <span class="s2">&quot;3fa85f64-5717-4562-b3fc-2c963f66afa6&quot;</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">r</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;https://clearwayapi.tech/clearview/</span><span class="si">{</span><span class="n">record_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;report.pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PDF saved.&quot;</span><span class="p">)</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">recordId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;3fa85f64-5717-4562-b3fc-2c963f66afa6&quot;</span><span class="p">;</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="sb">`https://clearwayapi.tech/clearview/</span><span class="si">${</span><span class="nx">recordId</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">res</span><span class="p">.</span><span class="nx">ok</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="sb">`Error: </span><span class="si">${</span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">blob</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">blob</span><span class="p">();</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="kd">const</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">URL</span><span class="p">.</span><span class="nx">createObjectURL</span><span class="p">(</span><span class="nx">blob</span><span class="p">);</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="kd">const</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">);</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="nx">a</span><span class="p">.</span><span class="nx">href</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">url</span><span class="p">;</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="nx">a</span><span class="p">.</span><span class="nx">download</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;report.pdf&quot;</span><span class="p">;</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nx">a</span><span class="p">.</span><span class="nx">click</span><span class="p">();</span>
-</code></pre></div>
-</div>
-</div>
-</div>
 
 
 
