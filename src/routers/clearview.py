@@ -1,30 +1,34 @@
 import asyncio
 import base64
+import logging
 import uuid
 
-from fastapi import APIRouter, Body, HTTPException, status
-from fastapi.responses import Response, StreamingResponse
+from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import Response
 
-from ..models.models import ClearviewResponse
+from ..models.models import ClearviewResponse, InputRequest
 from ..services.extractor_service import extract
 from ..services.summarizer_service import summarize
 from ..services.clearview_service import generate_clearview
-from ..services.audio_service import generate_audio, DEFAULT_VOICE_ID
+from ..services.scam_service import detect_scam
+from ..services.objectivity_service import detect_objectivity
+from ..services.sentiment_service import analyze_sentiment
 from ..services import firebase_service
 
-router = APIRouter(tags=["Clearways"])
+router = APIRouter(tags=["Clearview"])
+logger = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────
 # POST /clearview
-# Extract → Summarize → Generate PDF → Save to Firebase
+# Extract → Parallel analysis → Generate PDF → Save to Firebase
 # ─────────────────────────────────────────────
 
 @router.post("/clearview", response_model=ClearviewResponse)
-async def clearview_route(input: str = Body(embed=True)) -> ClearviewResponse:
+async def clearview_route(request: InputRequest) -> ClearviewResponse:
     # 1. Extract
     try:
-        extraction = await extract(input)
+        extraction = await extract(request.input)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 
@@ -34,8 +38,29 @@ async def clearview_route(input: str = Body(embed=True)) -> ClearviewResponse:
             detail=extraction.error or "Could not extract content.",
         )
 
-    # 2. Summarize
-    summary_text, _ = await summarize(extraction.content, max(1, min(extraction.word_count / 100, 20)))
+    # 2. Run summarize + scam + objectivity + sentiment in parallel
+    sentence_count = max(1, min(extraction.word_count // 100, 20))
+    results = await asyncio.gather(
+        summarize(extraction.content, sentence_count),
+        detect_scam(extraction.content),
+        detect_objectivity(extraction.content),
+        analyze_sentiment(extraction.content),
+        return_exceptions=True,
+    )
+
+    summary_result, scam_result, objectivity_result, sentiment_result = results
+
+    summary_text = summary_result[0] if not isinstance(summary_result, Exception) else None
+
+    if isinstance(scam_result, Exception):
+        logger.warning("Scam analysis failed: %s", scam_result)
+        scam_result = None
+    if isinstance(objectivity_result, Exception):
+        logger.warning("Objectivity analysis failed: %s", objectivity_result)
+        objectivity_result = None
+    if isinstance(sentiment_result, Exception):
+        logger.warning("Sentiment analysis failed: %s", sentiment_result)
+        sentiment_result = None
 
     # 3. Generate PDF
     try:
@@ -74,7 +99,14 @@ async def clearview_route(input: str = Body(embed=True)) -> ClearviewResponse:
         source=extraction.source,
         word_count=extraction.word_count,
         summary=summary_text,
+        is_scam=scam_result.is_scam if scam_result else False,
+        scam_notes=scam_result.notes if scam_result else None,
+        is_subjective=objectivity_result.is_subjective if objectivity_result else False,
+        subjective_notes=objectivity_result.notes if objectivity_result else None,
+        biases=sentiment_result.biases_above_cutoff if sentiment_result else [],
+        bias_notes=sentiment_result.notes if sentiment_result else None,
         pdf=base64.b64encode(pdf_bytes).decode(),
+        error=None,
     )
 
 
@@ -91,61 +123,4 @@ async def get_clearview_route(record_id: str) -> Response:
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}.pdf"'},
-    )
-
-
-# ─────────────────────────────────────────────
-# POST /audio
-# Extract → Generate audio via ElevenLabs → Save to Firebase
-# ─────────────────────────────────────────────
-
-@router.post("/audio", response_class=StreamingResponse)
-async def audio_route(
-    input: str = Body(...),
-    voice_id: str = Body(default=DEFAULT_VOICE_ID),
-) -> StreamingResponse:
-    try:
-        audio_bytes, extraction = await generate_audio(input, voice_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
-    except RuntimeError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
-
-    # Save to Firebase
-    record_id = str(uuid.uuid4())
-    await firebase_service.save_audio(
-        record_id,
-        {
-            "title": extraction.title,
-            "content": extraction.content,
-            "source": extraction.source,
-            "word_count": extraction.word_count,
-        },
-        audio_bytes,
-    )
-
-    return StreamingResponse(
-        content=iter([audio_bytes]),
-        media_type="audio/mpeg",
-        headers={
-            "Content-Disposition": 'inline; filename="audio.mp3"',
-            "Content-Length": str(len(audio_bytes)),
-            "X-Content-ID": record_id,
-        },
-    )
-
-
-# ─────────────────────────────────────────────
-# GET /audio/{record_id}
-# Download the MP3 file for a previously generated audiobook
-# ─────────────────────────────────────────────
-
-@router.get("/audio/{record_id}")
-async def get_audio_route(record_id: str) -> Response:
-    meta, mp3_bytes = await firebase_service.get_audio(record_id)
-    filename = meta.get("title", record_id).replace("/", "-")
-    return Response(
-        content=mp3_bytes,
-        media_type="audio/mpeg",
-        headers={"Content-Disposition": f'attachment; filename="{filename}.mp3"'},
     )

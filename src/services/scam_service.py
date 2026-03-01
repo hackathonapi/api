@@ -1,25 +1,23 @@
 import asyncio
 import logging
+import os
 import re
 from typing import Any
 
 from openai import APIError, AsyncOpenAI, AuthenticationError, RateLimitError
 
-from ..config import settings
-from ..models.scam import ScamAnalysisResult
+from ..models.models import ScamAnalysisResult
 
 logger = logging.getLogger(__name__)
+
+_HF_SCAM_MODEL_ID = "BothBosu/bert-scam-classifier-v1.6"
+_THRESHOLD = 0.5
+_REVIEWER_MODEL = "gpt-4o-mini"
 
 _scam_classifier: Any = None
 
 
-def _truncate_sentences(text: str, max_sentences: int) -> str:
-    parts = re.split(r"(?<=[.!?])\s+", text.strip())
-    parts = [p.strip() for p in parts if p.strip()]
-    return " ".join(parts[:max_sentences])
-
-
-def _chunk_text_for_classifier(text: str, max_chars: int = 1800) -> list[str]:
+def _chunk_text(text: str, max_chars: int = 1800) -> list[str]:
     text = text.strip()
     if len(text) <= max_chars:
         return [text]
@@ -27,200 +25,161 @@ def _chunk_text_for_classifier(text: str, max_chars: int = 1800) -> list[str]:
     sentences = re.split(r"(?<=[.!?])\s+", text)
     chunks: list[str] = []
     current = ""
-
     for sentence in sentences:
         sentence = sentence.strip()
         if not sentence:
             continue
-
         if len(current) + len(sentence) + 1 <= max_chars:
             current = f"{current} {sentence}".strip()
         else:
             if current:
                 chunks.append(current)
             current = sentence
-
     if current:
         chunks.append(current)
-
     return chunks[:10]
 
 
-def _normalize_label(label: str) -> str:
-    normalized = label.strip().upper().replace("_", "-")
-    if normalized in {"SCAM", "NON-SCAM"}:
-        return normalized
-    if normalized == "LABEL-1":
-        return "SCAM"
-    if normalized == "LABEL-0":
-        return "NON-SCAM"
-    return normalized
-
-
-def _load_scam_classifier_sync():
+def _load_classifier_sync():
     global _scam_classifier
     if _scam_classifier is not None:
         return _scam_classifier
-
     try:
         from transformers import pipeline
     except ImportError as exc:
-        raise ValueError(
-            "transformers is required for scam classification. Install dependencies from requirements.txt."
-        ) from exc
-
+        raise ValueError("transformers is required. Install dependencies from requirements.txt.") from exc
     _scam_classifier = pipeline(
         task="text-classification",
-        model=settings.hf_scam_model_id,
-        tokenizer=settings.hf_scam_model_id,
+        model=_HF_SCAM_MODEL_ID,
+        tokenizer=_HF_SCAM_MODEL_ID,
         device=-1,
         top_k=None,
     )
     return _scam_classifier
 
 
-def _run_scam_classifier_sync(text: str) -> tuple[float, float, dict[str, float]]:
-    classifier = _load_scam_classifier_sync()
-    chunks = _chunk_text_for_classifier(text)
-    raw_result = classifier(chunks, truncation=True, max_length=512)
+def _run_classifier_sync(text: str) -> tuple[float, float]:
+    classifier = _load_classifier_sync()
+    chunks = _chunk_text(text)
+    raw = classifier(chunks, truncation=True, max_length=512)
 
-    if raw_result and isinstance(raw_result[0], dict):
-        raw_batches = [raw_result]
-    else:
-        raw_batches = raw_result
+    if raw and isinstance(raw[0], dict):
+        raw = [raw]
 
     scam_scores: list[float] = []
     non_scam_scores: list[float] = []
 
-    for batch in raw_batches:
-        row_scores: dict[str, float] = {}
+    for batch in raw:
+        row: dict[str, float] = {}
         for item in batch:
-            label = _normalize_label(str(item.get("label", "")))
-            score = float(item.get("score", 0.0))
-            row_scores[label] = score
+            label = str(item.get("label", "")).strip().upper().replace("_", "-")
+            if label == "LABEL-1":
+                label = "SCAM"
+            elif label == "LABEL-0":
+                label = "NON-SCAM"
+            row[label] = float(item.get("score", 0.0))
 
-        scam = row_scores.get("SCAM", row_scores.get("LABEL-1", 0.0))
-        non_scam = row_scores.get("NON-SCAM", row_scores.get("LABEL-0", 0.0))
-
+        scam = row.get("SCAM", 0.0)
+        non_scam = row.get("NON-SCAM", 0.0)
         if scam == 0.0 and non_scam > 0.0:
             scam = 1.0 - non_scam
         if non_scam == 0.0 and scam > 0.0:
             non_scam = 1.0 - scam
-
         total = scam + non_scam
         if total > 0:
             scam /= total
             non_scam /= total
-
         scam_scores.append(scam)
         non_scam_scores.append(non_scam)
 
     if not scam_scores:
         raise RuntimeError("Classifier returned no scores.")
 
-    scam_probability = sum(scam_scores) / len(scam_scores)
-    non_scam_probability = sum(non_scam_scores) / len(non_scam_scores)
-
-    total = scam_probability + non_scam_probability
+    scam_prob = sum(scam_scores) / len(scam_scores)
+    non_scam_prob = sum(non_scam_scores) / len(non_scam_scores)
+    total = scam_prob + non_scam_prob
     if total > 0:
-        scam_probability /= total
-        non_scam_probability /= total
+        scam_prob /= total
+        non_scam_prob /= total
     else:
-        scam_probability = 0.5
-        non_scam_probability = 0.5
+        scam_prob = 0.5
+        non_scam_prob = 0.5
 
-    raw_scores = {
-        "SCAM": round(scam_probability, 4),
-        "NON-SCAM": round(non_scam_probability, 4),
-    }
-    return scam_probability, non_scam_probability, raw_scores
+    return round(scam_prob, 4), round(non_scam_prob, 4)
 
 
-def _fallback_review(text: str, scam_probability: float) -> str:
-    preview = text.strip().replace("\n", " ")[:180]
+def _fallback_notes(scam_probability: float, is_scam: bool) -> str:
+    if is_scam:
+        return (
+            f"This content shows signs of being a scam or phishing attempt "
+            f"(scam probability: {scam_probability:.0%}). "
+            "Be cautious — do not click links, share personal information, or make payments "
+            "without verifying with a trusted source first."
+        )
     return (
-        f"This message may be a scam or phishing attempt (score {scam_probability:.2f}). "
-        "Please double-check with a trusted source before you click, pay, or reply. "
-        f"Preview: {preview}"
+        f"This content does not appear to be a scam (scam probability: {scam_probability:.0%}). "
+        "It seems safe to engage with, though always exercise caution with unsolicited messages."
     )
 
 
-async def _generate_openai_review(text: str, scam_probability: float) -> str:
-    if not settings.openai_api_key:
-        return _fallback_review(text=text, scam_probability=scam_probability)
+async def _generate_notes(text: str, scam_probability: float, is_scam: bool) -> str:
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return _fallback_notes(scam_probability, is_scam)
 
-    prompt = (
-        "Write a short safety note for a general reader, including older adults. "
-        "Use plain words, short sentences, and a calm, respectful tone. "
-        "Say the message may be a scam or phishing attempt, and give simple safe next steps. "
-        "Keep it to 3-4 sentences.\n\n"
-        f"Classifier scam probability: {scam_probability:.3f}\n\n"
-        f"Message:\n{text[:5000]}"
+    label = "likely a scam" if is_scam else "likely safe"
+    user_prompt = (
+        f"Scam probability: {scam_probability:.1%} ({label}).\n\n"
+        f"Content:\n{text[:4000]}\n\n"
+        "In 2-3 plain sentences, explain whether this content is safe or suspicious "
+        "and what the reader should do."
     )
 
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
-    response = await client.chat.completions.create(
-        model=settings.scam_reviewer_model,
-        temperature=0.2,
-        max_tokens=220,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a security assistant for scam/phishing analysis. Write for everyday readers, "
-                    "including older adults. Use clear, simple language and practical advice. "
-                    "Avoid jargon, blame, and alarmist wording."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-    )
-    text_out = (response.choices[0].message.content or "").strip()
-    return _truncate_sentences(text_out, max_sentences=settings.scam_review_max_sentences)
+    try:
+        client = AsyncOpenAI(api_key=api_key)
+        response = await client.chat.completions.create(
+            model=_REVIEWER_MODEL,
+            temperature=0.2,
+            max_tokens=180,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a security analysis assistant. Write for a general audience. "
+                        "Use plain language, be calm and practical. Avoid alarmist wording."
+                    ),
+                },
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        return (response.choices[0].message.content or "").strip()
+    except (AuthenticationError, RateLimitError, APIError, Exception) as exc:
+        logger.warning("OpenAI scam notes failed (%s); using fallback.", exc)
+        return _fallback_notes(scam_probability, is_scam)
 
 
-async def detect_scam(
-    text: str,
-    threshold: float,
-    review_with_llm: bool = True,
-) -> ScamAnalysisResult:
+async def detect_scam(text: str) -> ScamAnalysisResult:
     if not text or not text.strip():
         raise ValueError("Text cannot be empty for scam analysis.")
 
-    if not (0.0 <= threshold <= 1.0):
-        raise ValueError("Threshold must be between 0 and 1.")
+    error: str | None = None
+    scam_prob = 0.0
+    non_scam_prob = 1.0
 
-    loop = asyncio.get_event_loop()
-    scam_prob, non_scam_prob, raw_scores = await loop.run_in_executor(
-        None, _run_scam_classifier_sync, text
-    )
+    try:
+        loop = asyncio.get_event_loop()
+        scam_prob, non_scam_prob = await loop.run_in_executor(None, _run_classifier_sync, text)
+    except Exception as exc:
+        logger.warning("Scam classifier failed (%s).", exc)
+        error = str(exc)
 
-    is_scam = scam_prob >= threshold
-    predicted_label = "SCAM" if scam_prob >= non_scam_prob else "NON-SCAM"
-
-    llm_review = None
-    llm_review_model = None
-    notes = None
-
-    if is_scam and review_with_llm:
-        try:
-            llm_review = await _generate_openai_review(text=text, scam_probability=scam_prob)
-            llm_review_model = settings.scam_reviewer_model if settings.openai_api_key else "fallback-local"
-        except (AuthenticationError, RateLimitError, APIError, ValueError) as exc:
-            logger.warning("OpenAI scam review failed (%s); using fallback review text.", exc)
-            llm_review = _fallback_review(text=text, scam_probability=scam_prob)
-            llm_review_model = "fallback-local"
-            notes = "OpenAI review failed; fallback review was used."
+    is_scam = scam_prob >= _THRESHOLD
+    notes = await _generate_notes(text, scam_prob, is_scam)
 
     return ScamAnalysisResult(
-        scam_probability=round(scam_prob, 4),
-        non_scam_probability=round(non_scam_prob, 4),
-        predicted_label=predicted_label,
+        scam_probability=scam_prob,
+        non_scam_probability=non_scam_prob,
         is_scam=is_scam,
-        threshold=threshold,
-        method_used="hf_bert_scam_classifier_v1_6",
-        raw_scores=raw_scores,
-        llm_review=llm_review,
-        llm_review_model=llm_review_model,
         notes=notes,
+        error=error,
     )

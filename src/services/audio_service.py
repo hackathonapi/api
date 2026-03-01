@@ -15,7 +15,7 @@ MAX_CHARS = 5_000  # ElevenLabs practical per-request limit
 
 
 async def generate_audio(input: str, voice_id: Optional[str] = None) -> tuple[bytes, ExtractionResult]:
-    if not os.environ.get('ELEVENLABS_AI_KEY'):
+    if not os.environ.get('ELEVENLABS_API_KEY'):
         raise ValueError("ELEVENLABS_API_KEY is not configured.")
 
     # Extract text from URL or plain text input
@@ -27,7 +27,7 @@ async def generate_audio(input: str, voice_id: Optional[str] = None) -> tuple[by
     if len(text) > MAX_CHARS:
         text = text[:MAX_CHARS]
 
-    client = AsyncElevenLabs(api_key=os.environ.get('ELEVENLABS_AI_KEY'))
+    client = AsyncElevenLabs(api_key=os.environ.get('ELEVENLABS_API_KEY'))
     resolved_voice = voice_id or DEFAULT_VOICE_ID
 
     try:

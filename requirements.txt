@@ -1,5 +1,4 @@
 fastapi
-<<<<<<< HEAD
 uvicorn[standard]
 httpx
 requests
@@ -15,20 +14,5 @@ openai
 sumy
 nltk
 elevenlabs
-=======
-uvicorn
-pydantic
-pydantic-settings
-python-dotenv
-openai
-httpx
-PyMuPDF
-newspaper3k
-sumy
-nltk
-playwright
-lxml[html_clean]
-chardet<6
 transformers
 torch
->>>>>>> 2b915ed (sentiments)
