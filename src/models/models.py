@@ -14,6 +14,7 @@ class ExtractionResult(BaseModel):
 
 
 class ClearviewResponse(BaseModel):
+    id: str = Field(description="Unique record ID. Use with GET /clearview/{id} to retrieve.")
     title: str
     content: str
     source: str

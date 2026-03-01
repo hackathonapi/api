@@ -5,6 +5,7 @@ from typing import Optional
 from elevenlabs.client import AsyncElevenLabs
 from elevenlabs.core import ApiError
 
+from ..models.models import ExtractionResult
 from ..services.extractor_service import extract
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel — clear neutral narration
 MAX_CHARS = 5_000  # ElevenLabs practical per-request limit
 
 
-async def generate_audio(input: str, voice_id: Optional[str] = None) -> bytes:
+async def generate_audio(input: str, voice_id: Optional[str] = None) -> tuple[bytes, ExtractionResult]:
     if not os.environ.get('ELEVENLABS_AI_KEY'):
         raise ValueError("ELEVENLABS_API_KEY is not configured.")
 
@@ -40,7 +41,7 @@ async def generate_audio(input: str, voice_id: Optional[str] = None) -> bytes:
         async for chunk in audio_stream:
             if isinstance(chunk, bytes):
                 chunks.append(chunk)
-        return b"".join(chunks)
+        return b"".join(chunks), result
 
     except ApiError as exc:
         logger.error("ElevenLabs API error: %s %s", exc.status_code, exc.body)
