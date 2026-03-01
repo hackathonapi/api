@@ -7,16 +7,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&family=Outfit:wght@600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
-    <div class="bg-orb bg-orb-2" aria-hidden="true"></div>
-
-    <main class="shell">
+    <div class="page">
       <header class="topbar">
         <a class="brand" href="./">Clearways</a>
         <nav>
@@ -24,57 +21,114 @@
         </nav>
       </header>
 
-      <section class="panel hero">
-        <div>
-          <p class="eyebrow">API Playground</p>
-          <h1>Input once. Read results instantly.</h1>
-          <p class="subtext">
-            Paste any string and inspect the JSON response from your Clearways API.
-          </p>
-        </div>
+      <!-- Hero -->
+      <section class="hero">
+        <h1>Understand any source in seconds.</h1>
+        <ul class="features">
+          <li>Extract text from articles, YouTube videos, Reddit threads, and PDFs</li>
+          <li>Detect bias, source credibility issues, and scam signals</li>
+          <li>Download a Clearview PDF report or listen to an audio summary</li>
+        </ul>
       </section>
 
-      <section class="panel">
-        <label for="apiBase" class="label">API Base URL</label>
-        <input
-          id="apiBase"
-          class="text-input"
-          placeholder="https://your-api-domain.com"
-          autocomplete="off"
-        />
-        <p class="hint">Leave blank to use the current origin.</p>
-
-        <label for="input" class="label input-label">Input</label>
+      <!-- Input -->
+      <div class="card input-card">
         <textarea
           id="input"
-          name="input"
-          placeholder="Enter a URL or text..."
-          rows="6"
-          required
+          placeholder="Paste a URL or text to analyze..."
+          rows="4"
         ></textarea>
-        <div class="actions">
-          <button id="submit" type="button">Run Request</button>
-          <span id="status" class="hint" aria-live="polite"></span>
+        <div class="input-footer">
+          <button id="submit">Analyze</button>
+          <span id="status" class="status-text" aria-live="polite"></span>
         </div>
-      </section>
+      </div>
 
-      <section class="panel">
-        <div class="result-head">
-          <h2>Response</h2>
-          <button id="copy" class="ghost" type="button">Copy JSON</button>
+      <!-- Results (hidden until response) -->
+      <div class="card results-card" id="results" hidden>
+
+        <!-- Three metric pills -->
+        <div class="metrics-row">
+          <div class="metric" id="metric-bias">
+            <span class="metric-dot" data-state="neutral"></span>
+            <div>
+              <div class="metric-label">Bias</div>
+              <div class="metric-value" id="bias-value">—</div>
+            </div>
+          </div>
+          <div class="metric" id="metric-credibility">
+            <span class="metric-dot" data-state="neutral"></span>
+            <div>
+              <div class="metric-label">Credibility</div>
+              <div class="metric-value" id="credibility-value">—</div>
+            </div>
+          </div>
+          <div class="metric" id="metric-scam">
+            <span class="metric-dot" data-state="neutral"></span>
+            <div>
+              <div class="metric-label">Scam Risk</div>
+              <div class="metric-value" id="scam-value">—</div>
+            </div>
+          </div>
         </div>
-        <pre id="output" class="output">{
-  "message": "Results will appear here"
-}</pre>
-      </section>
 
-      <section class="panel future-docs">
-        <h2>Documentation Space</h2>
-        <p>
-          This area is reserved for expanded API docs, endpoint examples, and integration guides.
-        </p>
-      </section>
-    </main>
-    <script src="assets/app.js"></script>
+        <div class="rule"></div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat">
+            <span class="stat-label">Words</span>
+            <span class="stat-value" id="stat-words">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Source</span>
+            <span class="stat-value" id="stat-source">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Type</span>
+            <span class="stat-value" id="stat-type">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Method</span>
+            <span class="stat-value" id="stat-method">—</span>
+          </div>
+        </div>
+
+        <div class="rule"></div>
+
+        <!-- Downloads -->
+        <div class="downloads-row">
+          <a id="pdf-btn" class="btn-pdf" href="#" target="_blank" aria-disabled="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+            Clearview PDF
+          </a>
+
+          <div class="audio-block" id="audio-block">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+            <audio id="audio-player" controls></audio>
+          </div>
+        </div>
+
+        <div class="rule"></div>
+
+        <!-- Extracted content -->
+        <div class="preview-header">
+          <span class="preview-label">Extracted Content</span>
+          <button id="copy" class="btn-ghost" type="button">Copy</button>
+        </div>
+        <pre id="content-text" class="content-pre"></pre>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
   </body>
 </html>

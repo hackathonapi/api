@@ -3,20 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Clearways Docs</title>
+    <title>Clearways — Docs</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&family=Outfit:wght@600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
-    <div class="bg-orb bg-orb-2" aria-hidden="true"></div>
-
-    <main class="shell docs-shell">
+    <div class="page">
       <header class="topbar">
         <a class="brand" href="./">Clearways</a>
         <nav>
@@ -24,17 +21,13 @@
         </nav>
       </header>
 
-      <section class="panel hero">
-        <div>
-          <p class="eyebrow">Documentation</p>
-          <h1>Docs Page Placeholder</h1>
-          <p class="subtext">
-            Keep this route for upcoming endpoint references, request/response samples, and auth notes.
-          </p>
-        </div>
+      <section class="docs-hero">
+        <p class="eyebrow">Documentation</p>
+        <h1>API Reference</h1>
+        <p>Endpoint details, request formats, and response schemas for the Clearways extraction API.</p>
       </section>
 
-      <section class="panel">
+      <div class="card">
         <h2>Planned Sections</h2>
         <ul class="docs-list">
           <li>Endpoint catalog</li>
@@ -42,7 +35,7 @@
           <li>Error codes and retry guidance</li>
           <li>SDK snippets</li>
         </ul>
-      </section>
-    </main>
+      </div>
+    </div>
   </body>
 </html>
