@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -26,17 +27,23 @@ _bucket = storage.bucket()
 
 # ── Clearview ─────────────────────────────────────────────────────────────────
 
-async def save_clearway(record_id: str, metadata: dict, pdf_bytes: bytes) -> None:
+def _do_save_clearway(record_id: str, metadata: dict, pdf_bytes: bytes) -> None:
     _db.collection("clearview").document(record_id).set(metadata)
-
     blob = _bucket.blob(f"clearview/{record_id}.pdf")
     blob.upload_from_string(pdf_bytes, content_type="application/pdf")
 
-    logger.info("Saved clearview record %s to Firebase.", record_id)
+
+async def save_clearway(record_id: str, metadata: dict, pdf_bytes: bytes) -> None:
+    try:
+        await asyncio.to_thread(_do_save_clearway, record_id, metadata, pdf_bytes)
+        logger.info("Saved clearview record %s to Firebase.", record_id)
+    except Exception as exc:
+        logger.error("Firebase save_clearway failed for %s: %s", record_id, exc, exc_info=True)
+        raise
 
 
 async def get_clearway(record_id: str) -> tuple[dict, bytes]:
-    doc = _db.collection("clearview").document(record_id).get()
+    doc = await asyncio.to_thread(_db.collection("clearview").document(record_id).get)
     if not doc.exists:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -44,29 +51,35 @@ async def get_clearway(record_id: str) -> tuple[dict, bytes]:
         )
 
     blob = _bucket.blob(f"clearview/{record_id}.pdf")
-    if not blob.exists():
+    if not await asyncio.to_thread(blob.exists):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"PDF for clearview record '{record_id}' not found in storage.",
         )
 
-    pdf_bytes = blob.download_as_bytes()
+    pdf_bytes = await asyncio.to_thread(blob.download_as_bytes)
     return doc.to_dict(), pdf_bytes
 
 
 # ── Audio ─────────────────────────────────────────────────────────────────────
 
-async def save_audio(record_id: str, metadata: dict, mp3_bytes: bytes) -> None:
+def _do_save_audio(record_id: str, metadata: dict, mp3_bytes: bytes) -> None:
     _db.collection("audio").document(record_id).set(metadata)
-
     blob = _bucket.blob(f"audio/{record_id}.mp3")
     blob.upload_from_string(mp3_bytes, content_type="audio/mpeg")
 
-    logger.info("Saved audio record %s to Firebase.", record_id)
+
+async def save_audio(record_id: str, metadata: dict, mp3_bytes: bytes) -> None:
+    try:
+        await asyncio.to_thread(_do_save_audio, record_id, metadata, mp3_bytes)
+        logger.info("Saved audio record %s to Firebase.", record_id)
+    except Exception as exc:
+        logger.error("Firebase save_audio failed for %s: %s", record_id, exc, exc_info=True)
+        raise
 
 
 async def get_audio(record_id: str) -> tuple[dict, bytes]:
-    doc = _db.collection("audio").document(record_id).get()
+    doc = await asyncio.to_thread(_db.collection("audio").document(record_id).get)
     if not doc.exists:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -74,11 +87,11 @@ async def get_audio(record_id: str) -> tuple[dict, bytes]:
         )
 
     blob = _bucket.blob(f"audio/{record_id}.mp3")
-    if not blob.exists():
+    if not await asyncio.to_thread(blob.exists):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"MP3 for audio record '{record_id}' not found in storage.",
         )
 
-    mp3_bytes = blob.download_as_bytes()
+    mp3_bytes = await asyncio.to_thread(blob.download_as_bytes)
     return doc.to_dict(), mp3_bytes
