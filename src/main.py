@@ -1,5 +1,3 @@
-import nltk
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from pathlib import Path
