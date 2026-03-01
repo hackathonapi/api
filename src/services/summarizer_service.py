@@ -26,14 +26,17 @@ def _extractive_summarize(text: str, sentence_count: int) -> tuple[str | None, s
         for line in re.split(r"\n+", text.strip()):
             raw.extend(re.split(r'(?<=[.!?])["\']?\s+(?=[A-Z"\'])', line))
 
-        sentences = []
+        originals: list[str] = []
+        sentences: list[str] = []
         for s in raw:
             s = s.strip()
             if len(s.split()) < 4:
                 continue
+            originals.append(s)
             if not re.search(r'[.!?]["\']?\s*$', s):
-                s = s.rstrip() + "."
-            sentences.append(s)
+                sentences.append(s + ".")
+            else:
+                sentences.append(s)
 
         if not sentences:
             return None, "could not split text into sentences"
@@ -52,8 +55,10 @@ def _extractive_summarize(text: str, sentence_count: int) -> tuple[str | None, s
             for sent in sentences
         }
 
+        # Use the original (unmodified) string to locate position in source text
+        orig_by_display = dict(zip(sentences, originals))
         top = heapq.nlargest(sentence_count, scores, key=scores.get)
-        top_ordered = sorted(top, key=lambda s: text.index(s))
+        top_ordered = sorted(top, key=lambda s: text.index(orig_by_display[s]))
         return " ".join(top_ordered), None
 
     except Exception as exc:
