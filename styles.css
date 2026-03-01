@@ -358,6 +358,9 @@ body::after {
 #results.show .results-grid > *:nth-child(1) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .62s both; }
 #results.show .results-grid > *:nth-child(2) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .68s both; }
 #results.show .results-grid > *:nth-child(3) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .74s both; }
+#results.show .results-grid > *:nth-child(4) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .80s both; }
+#results.show .results-grid > *:nth-child(5) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .86s both; }
+#results.show .results-grid > *:nth-child(6) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .92s both; }
 
 /* ─────────────────────────────────────────────────
    Results three-card grid
@@ -533,6 +536,80 @@ body::after {
   max-height: 320px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* ─────────────────────────────────────────────────
+   Metric cards (.mc)
+───────────────────────────────────────────────── */
+.mc {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 1.35rem;
+}
+
+/* Coloured accent stripe at top */
+.mc::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--border);
+  border-radius: var(--r) var(--r) 0 0;
+  transition: background .3s;
+}
+.mc[data-active="good"]::before { background: var(--good-border); }
+.mc[data-active="warn"]::before { background: var(--warn-border); }
+.mc[data-active="bad"]::before  { background: var(--bad-border);  }
+
+/* Status dot */
+.mc-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background .3s;
+  margin-bottom: 0.5rem;
+}
+.mc[data-active="good"] .mc-dot { background: var(--good); animation: dotPop .35s ease both; }
+.mc[data-active="warn"] .mc-dot { background: var(--warn); animation: dotPop .35s ease both; }
+.mc[data-active="bad"]  .mc-dot { background: var(--bad);  animation: dotPop .35s ease both; }
+
+/* Card label */
+.mc-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+/* Bottom info area */
+.mc-info { display: flex; flex-direction: column; gap: 0.2rem; }
+
+/* Value (e.g. "Low", "Subjective", "None detected") */
+.mc-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  transition: color .3s;
+}
+.mc[data-active="good"] .mc-value { color: var(--good); }
+.mc[data-active="warn"] .mc-value { color: var(--warn); }
+.mc[data-active="bad"]  .mc-value { color: var(--bad);  }
+
+/* Reason / tooltip */
+.mc-tooltip {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ─────────────────────────────────────────────────
