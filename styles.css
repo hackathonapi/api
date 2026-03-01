@@ -68,6 +68,18 @@
   100% { transform: scale(1);  opacity: 1; }
 }
 
+@keyframes blobDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(3%, 5%) scale(1.06); }
+  66%       { transform: translate(-2%, 2%) scale(0.97); }
+}
+
+@keyframes blobDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(-4%, -3%) scale(1.08); }
+  70%       { transform: translate(2%, -2%) scale(0.95); }
+}
+
 /* ─────────────────────────────────────────────────
    Reset & base
 ───────────────────────────────────────────────── */
@@ -76,13 +88,36 @@
 body {
   font-family: "Inter", system-ui, sans-serif;
   background-color: var(--bg);
-  background-image:
-    radial-gradient(ellipse 70% 55% at 12% 15%, rgba(37,99,235,.045) 0%, transparent 100%),
-    radial-gradient(ellipse 55% 65% at 88% 85%, rgba(37,99,235,.03)  0%, transparent 100%);
   color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* Animated background blobs */
+body::before {
+  content: "";
+  position: fixed;
+  width: 700px; height: 700px;
+  left: -12%; top: -18%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(37,99,235,.07) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+  animation: blobDrift1 20s ease-in-out infinite;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  width: 580px; height: 580px;
+  right: -8%; bottom: -14%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(37,99,235,.055) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+  animation: blobDrift2 26s ease-in-out infinite;
 }
 
 /* ─────────────────────────────────────────────────
@@ -102,15 +137,17 @@ body {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 3rem;
-  animation: fadeIn .4s ease-out both;
 }
 
+.brand    { animation: slideUp .5s cubic-bezier(.22,1,.36,1) .00s both; }
+.nav-link { animation: slideUp .5s cubic-bezier(.22,1,.36,1) .08s both; }
+
 .brand {
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: var(--accent);
   text-decoration: none;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
   transition: opacity .15s;
 }
 .brand:hover { opacity: .8; }
@@ -127,14 +164,15 @@ body {
 /* ─────────────────────────────────────────────────
    Hero
 ───────────────────────────────────────────────── */
-.hero { max-width: 700px; margin-bottom: 2.25rem; }
+.hero { max-width: 100%; margin-bottom: 2.25rem; }
 
 .hero h1 {
-  font-size: clamp(2.4rem, 5.5vw, 3.4rem);
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1.1;
   margin-bottom: 1.4rem;
+  white-space: nowrap;
 
   /* shimmer */
   background: linear-gradient(
@@ -151,8 +189,8 @@ body {
   background-clip: text;
 
   animation:
-    slideUp .6s cubic-bezier(.22,1,.36,1) .05s both,
-    shimmer 6s linear 1.2s infinite;
+    slideUp .55s cubic-bezier(.22,1,.36,1) .16s both,
+    shimmer 6s linear 1.4s infinite;
 }
 
 .features {
@@ -171,9 +209,9 @@ body {
   line-height: 1.6;
 }
 
-.features li:nth-child(1) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .18s both; }
-.features li:nth-child(2) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .28s both; }
-.features li:nth-child(3) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .38s both; }
+.features li:nth-child(1) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .28s both; }
+.features li:nth-child(2) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .36s both; }
+.features li:nth-child(3) { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .44s both; }
 
 .features li::before {
   content: "";
@@ -218,9 +256,11 @@ body {
 /* ─────────────────────────────────────────────────
    Input card
 ───────────────────────────────────────────────── */
+.input-card-label { margin-bottom: 0.75rem; }
+
 .input-card {
   margin-bottom: 1.375rem;
-  animation: slideUp .55s cubic-bezier(.22,1,.36,1) .5s both;
+  animation: slideUp .55s cubic-bezier(.22,1,.36,1) .52s both;
   transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s, border-color .2s;
 }
 
@@ -314,13 +354,13 @@ body {
 ───────────────────────────────────────────────── */
 #results { display: flex; flex-direction: column; gap: 1rem; }
 
-/* stagger driven by JS adding .show class to #results */
-#results.show .results-grid               { animation: slideUp .45s cubic-bezier(.22,1,.36,1) .05s both; }
-#results.show .sidebar .audio-card        { animation: slideUp .45s cubic-bezier(.22,1,.36,1) .08s both; }
-#results.show .sidebar .stats-card        { animation: slideUp .45s cubic-bezier(.22,1,.36,1) .16s both; }
-#results.show .sidebar #metric-bias       { animation: slideUp .45s cubic-bezier(.22,1,.36,1) .24s both; }
-#results.show .sidebar #metric-credibility{ animation: slideUp .45s cubic-bezier(.22,1,.36,1) .32s both; }
-#results.show .sidebar #metric-scam       { animation: slideUp .45s cubic-bezier(.22,1,.36,1) .40s both; }
+/* stagger continues the top-to-bottom page sequence after input card */
+#results.show .pdf-card                { animation: slideUp .55s cubic-bezier(.22,1,.36,1) .62s both; }
+#results.show .sidebar > *:nth-child(1){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .70s both; }
+#results.show .sidebar > *:nth-child(2){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .78s both; }
+#results.show .sidebar > *:nth-child(3){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .86s both; }
+#results.show .sidebar > *:nth-child(4){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) .94s both; }
+#results.show .sidebar > *:nth-child(5){ animation: slideUp .55s cubic-bezier(.22,1,.36,1) 1.02s both; }
 
 .mc {
   position: relative;
@@ -337,6 +377,7 @@ body {
 .mc:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
+  z-index: 20;
 }
 
 .mc[data-active="good"] { border-color: var(--good-border); background: var(--good-bg); }
@@ -421,7 +462,7 @@ body {
   pointer-events: none;
   opacity: 0;
   transition: opacity .2s, transform .2s;
-  z-index: 50;
+  z-index: 9999;
   box-shadow: 0 8px 32px rgba(0,0,0,.2);
 }
 
@@ -659,6 +700,7 @@ body {
 @media (max-width: 800px) {
   .results-grid { grid-template-columns: 1fr; align-items: start; }
   .pdf-viewer { flex: none; height: clamp(260px, 48vw, 400px); }
+  .hero h1 { white-space: normal; }
 }
 
 @media (max-width: 580px) {

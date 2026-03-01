@@ -114,13 +114,11 @@ function showResults(data) {
     if (audioDownload) { audioDownload.setAttribute("aria-disabled", "true"); audioDownload.href = "#"; }
   }
 
-  // Reveal + re-trigger stagger animations
+  // Re-trigger stagger animations on new results
   if (resultsEl) {
-    resultsEl.hidden = false;
     resultsEl.classList.remove("show");
-    void resultsEl.offsetWidth; // force reflow so animation restarts
+    void resultsEl.offsetWidth;
     resultsEl.classList.add("show");
-    setTimeout(() => resultsEl.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
 }
 
@@ -139,7 +137,6 @@ async function runRequest() {
   submitBtn.disabled = true;
   if (submitLabel) submitLabel.textContent = "Analyzing…";
   setStatus("");
-  if (resultsEl) resultsEl.hidden = true;
 
   try {
     const res = await fetch(`${window.location.origin}/extract`, {

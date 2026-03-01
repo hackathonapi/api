@@ -17,7 +17,7 @@
 
       <!-- Top bar -->
       <header class="topbar">
-        <a class="brand" href="./">Clearways</a>
+        <a class="brand" href="./">Clearway</a>
         <nav>
           <a class="nav-link" href="docs.html">Docs</a>
         </nav>
@@ -25,7 +25,7 @@
 
       <!-- Hero -->
       <section class="hero">
-        <h1>Understand any source<br>in seconds.</h1>
+        <h1>Understand any source in seconds.</h1>
         <ul class="features">
           <li>Extract text from articles, Reddit threads, and PDFs</li>
           <li>Detect bias, source credibility issues, and scam signals</li>
@@ -35,6 +35,13 @@
 
       <!-- Input -->
       <div class="card input-card">
+        <div class="card-label input-card-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          Analyze Content
+        </div>
         <textarea id="input" placeholder="Paste a URL or text to analyze…" rows="3"></textarea>
         <div class="input-footer">
           <button id="submit">
@@ -51,7 +58,7 @@
       </div>
 
       <!-- Results -->
-      <div id="results" hidden>
+      <div id="results" class="show">
 
         <!-- ── PDF (left) + sidebar (right) ── -->
         <div class="results-grid">
@@ -103,7 +110,7 @@
                     <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
                     <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
                   </svg>
-                  Audio Summary
+                  Audio
                 </div>
                 <a id="audio-download" class="btn-dl" href="#" download aria-disabled="true">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
