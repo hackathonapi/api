@@ -1,13 +1,11 @@
-from typing import Literal
-
 from pydantic import BaseModel, Field
 
 
 class SummarizeRequest(BaseModel):
-    text: str = Field(
+    input: str = Field(
         ...,
-        min_length=50,
-        description="The text to summarize. Can be a YouTube transcript or any plain text block.",
+        min_length=1,
+        description="A URL to fetch and summarize, or a plain text block to summarize directly.",
     )
     sentence_count: int = Field(
         default=5,
