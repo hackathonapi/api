@@ -68,7 +68,7 @@ async def summarize(text: str, sentence_count: int) -> tuple[str | None, str | N
     """
     if os.environ.get('OPENAI_API_KEY'):
         try:
-            client = AsyncOpenAI(api_key=os.environ.get('OPEN_AI_KEY'))
+            client = AsyncOpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
             prompt = (
                 f"Summarize the following text in approximately {sentence_count} sentences. "
                 f"Return only the summary, with no preamble.\n\n{text}"
