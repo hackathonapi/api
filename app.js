@@ -139,15 +139,51 @@ async function runRequest() {
   setStatus("");
 
   try {
-    const res = await fetch(`${window.location.origin}/extract`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ input }),
+    const body = JSON.stringify({ input });
+    const headers = { "Content-Type": "application/json" };
+
+    const [clearviewRes, audioRes] = await Promise.all([
+      fetch(`${window.location.origin}/clearview`, { method: "POST", headers, body }),
+      fetch(`${window.location.origin}/audio`,     { method: "POST", headers, body }),
+    ]);
+
+    const [clearview, audioBlob] = await Promise.all([
+      clearviewRes.json(),
+      audioRes.ok ? audioRes.blob() : Promise.resolve(null),
+    ]);
+
+    // PDF: base64 → blob URL
+    let pdf_url = null;
+    if (clearviewRes.ok && clearview.pdf) {
+      const pdfBytes = Uint8Array.from(atob(clearview.pdf), c => c.charCodeAt(0));
+      pdf_url = URL.createObjectURL(new Blob([pdfBytes], { type: "application/pdf" }));
+    }
+
+    // Audio: streaming response → blob URL
+    const audio_url = audioBlob ? URL.createObjectURL(audioBlob) : null;
+
+    // Bias: use detected bias labels; fall back to subjectivity signal
+    const biasLabel = clearview.biases?.length
+      ? clearview.biases.join(", ")
+      : (clearview.is_subjective ? "Subjective" : "None");
+    const biasReason = clearview.bias_notes ?? clearview.subjective_notes ?? null;
+
+    // Scam: boolean → label
+    const scamLabel  = clearview.is_scam ? "High" : "None";
+    const scamReason = clearview.scam_notes ?? null;
+
+    showResults({
+      word_count:   clearview.word_count,
+      source:       clearview.source,
+      bias:         biasLabel,
+      bias_reason:  biasReason,
+      scam_risk:    scamLabel,
+      scam_reason:  scamReason,
+      pdf_url,
+      audio_url,
     });
 
-    const data = await res.json();
-    showResults(data);
-    setStatus(res.ok ? "" : `Error ${res.status}`);
+    setStatus(clearviewRes.ok ? "" : `Error ${clearviewRes.status}`);
   } catch {
     setStatus("Network error — is the API running?");
   } finally {
