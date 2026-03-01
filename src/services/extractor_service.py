@@ -133,6 +133,9 @@ def detect_url_type(url: str) -> str:
     if domain in ("reddit.com", "old.reddit.com", "new.reddit.com"):
         return "reddit"
 
+    if re.search(r'\.wikipedia\.org$', domain):
+        return "wikipedia"
+
     if path.endswith(".pdf"):
         return "pdf_url"
 
@@ -211,6 +214,72 @@ async def extract_reddit(url: str) -> ExtractionResult:
             title="", authors=[], content="", source=url, input_type="url",
             word_count=0, extraction_method="reddit_json",
             error=f"Could not extract Reddit post: {str(e)}",
+        )
+
+
+async def extract_wikipedia(url: str) -> ExtractionResult:
+    parsed = urlparse(url)
+    # Extract article title from path: /wiki/Article_Title
+    match = re.match(r'^/wiki/(.+)$', parsed.path)
+    if not match:
+        return ExtractionResult(
+            title="", content="", source=url, input_type="url",
+            word_count=0, extraction_method="wikipedia_api",
+            error="Could not parse Wikipedia article title from URL.",
+        )
+
+    article_title = match.group(1)
+    lang = parsed.netloc.split(".")[0]  # e.g. "en", "fr"
+    api_url = f"https://{lang}.wikipedia.org/w/api.php"
+
+    params = {
+        "action": "query",
+        "prop": "extracts|info",
+        "titles": article_title,
+        "format": "json",
+        "explaintext": "1",
+        "exsectionformat": "plain",
+        "inprop": "url",
+        "redirects": "1",
+    }
+
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+            response = await client.get(api_url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+        pages = data.get("query", {}).get("pages", {})
+        page = next(iter(pages.values()))
+
+        if "missing" in page:
+            return ExtractionResult(
+                title="", content="", source=url, input_type="url",
+                word_count=0, extraction_method="wikipedia_api",
+                error=f"Wikipedia article '{article_title}' not found.",
+            )
+
+        title = page.get("title", article_title)
+        text = _normalize(page.get("extract", ""))
+
+        if not text:
+            return ExtractionResult(
+                title=title, content="", source=url, input_type="url",
+                word_count=0, extraction_method="wikipedia_api",
+                error="Wikipedia returned an empty article.",
+            )
+
+        return ExtractionResult(
+            title=title, content=text, source=url, input_type="url",
+            word_count=len(text.split()),
+            extraction_method="wikipedia_api", error=None,
+        )
+
+    except Exception as e:
+        return ExtractionResult(
+            title="", content="", source=url, input_type="url",
+            word_count=0, extraction_method="wikipedia_api",
+            error=f"Could not fetch Wikipedia article: {e}",
         )
 
 
@@ -307,9 +376,10 @@ async def extract_from_url(url: str) -> ExtractionResult:
     url_type = detect_url_type(url)
 
     extractors = {
-        "reddit":  extract_reddit,
-        "pdf_url": extract_pdf_url,
-        "generic": extract_generic,
+        "reddit":    extract_reddit,
+        "wikipedia": extract_wikipedia,
+        "pdf_url":   extract_pdf_url,
+        "generic":   extract_generic,
     }
 
     return await extractors[url_type](url)

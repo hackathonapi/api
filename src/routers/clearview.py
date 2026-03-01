@@ -2,9 +2,9 @@ import asyncio
 import base64
 import logging
 
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
-from ..models.models import ClearviewResponse
+from ..models.models import ClearviewResponse, InputRequest
 from ..services.extractor_service import extract
 from ..services.summarizer_service import summarize
 from ..services.clearview_service import generate_clearview
@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/clearview", response_model=ClearviewResponse)
-async def clearview_route(input: str = Body(embed=True)) -> ClearviewResponse:
+async def clearview_route(request: InputRequest) -> ClearviewResponse:
     # 1. Extract
     try:
-        extraction = await extract(input)
+        extraction = await extract(request.input)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 

@@ -3,6 +3,15 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class InputRequest(BaseModel):
+    input: str
+
+
+class AudioRequest(BaseModel):
+    input: str
+    voice_id: Optional[str] = None
+
+
 class ExtractionResult(BaseModel):
     title: str
     content: str

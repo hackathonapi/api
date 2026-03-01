@@ -1,18 +1,16 @@
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from ..services.audio_service import generate_audio, DEFAULT_VOICE_ID
+from ..models.models import AudioRequest
 
 router = APIRouter(tags=["Audio"])
 
 
 @router.post("/audio", response_class=StreamingResponse)
-async def audio_route(
-    input: str = Body(...),
-    voice_id: str = Body(default=DEFAULT_VOICE_ID),
-) -> StreamingResponse:
+async def audio_route(request: AudioRequest) -> StreamingResponse:
     try:
-        audio_bytes = await generate_audio(input, voice_id)
+        audio_bytes = await generate_audio(request.input, request.voice_id or DEFAULT_VOICE_ID)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
     except RuntimeError as exc:
