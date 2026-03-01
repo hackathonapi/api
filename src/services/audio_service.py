@@ -53,5 +53,9 @@ async def generate_audio(input: str, voice_id: Optional[str] = None) -> tuple[by
 
     # Fallback: gTTS (Google TTS, free, no API key, outputs MP3 directly)
     logger.info("Generating audio with gTTS fallback.")
-    mp3_bytes = await asyncio.to_thread(_gtts_fallback, text)
-    return mp3_bytes, result
+    try:
+        mp3_bytes = await asyncio.to_thread(_gtts_fallback, text)
+        return mp3_bytes, result
+    except Exception as exc:
+        logger.error("gTTS fallback failed: %s", exc)
+        raise RuntimeError(f"Audio generation failed: {exc}") from exc

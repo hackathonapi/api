@@ -2,6 +2,7 @@
 # Imports
 # ---------------------------------------------------------------------------
 import asyncio
+import logging
 import os
 import re
 import tempfile
@@ -13,6 +14,8 @@ import pymupdf
 from newspaper import Article, Config
 
 from ..models.models import ExtractionResult
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +253,13 @@ async def extract_wikipedia(url: str) -> ExtractionResult:
             data = response.json()
 
         pages = data.get("query", {}).get("pages", {})
+        if not pages:
+            return ExtractionResult(
+                title="", content="", source=url, input_type="url",
+                word_count=0, extraction_method="wikipedia_api",
+                error="Wikipedia response did not include page data.",
+            )
+
         page = next(iter(pages.values()))
 
         if "missing" in page:
@@ -350,7 +360,8 @@ async def extract_generic(url: str) -> ExtractionResult:
             word_count=0, extraction_method="newspaper",
             error=str(e),
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("Generic extraction failed for %s: %s", url, exc)
         content = None
 
     if not content or len(content.split()) < 50:

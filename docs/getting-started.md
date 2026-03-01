@@ -14,7 +14,6 @@ This guide walks you through setting up and running the Clearview API locally, t
 |---|---|
 | **OpenAI** | Summarization (`OPENAI_API_KEY`) |
 | **ElevenLabs** | Text-to-speech (`ELEVENLABS_API_KEY`) |
-| **Firebase** | Persistence — Firestore + Cloud Storage |
 
 ---
 
@@ -49,8 +48,6 @@ Create a `.env` file in the project root:
 OPENAI_API_KEY=sk-...
 ELEVENLABS_API_KEY=...
 ```
-
-Place your Firebase service account file at `firebase-credentials.json` in the project root (download from the Firebase Console under Project Settings → Service Accounts).
 
 ---
 
@@ -128,9 +125,9 @@ The following example analyzes a news article URL and retrieves the PDF report.
         timeout=120,  # analysis takes time — several ML models run in parallel
     )
     data = r.json()
-    print("Record ID:", data["id"])
-    print("Is scam:", data["is_scam"])
-    print("Biases detected:", data["biases"])
+    print("Word count:", data["word_count"])
+    print("Scam notes:", data.get("scam_notes"))
+    print("Bias notes:", data.get("bias_notes"))
     ```
 
 === "JavaScript"
@@ -142,12 +139,12 @@ The following example analyzes a news article URL and retrieves the PDF report.
       body: JSON.stringify({ input: "https://www.bbc.com/news/articles/example" }),
     });
     const data = await res.json();
-    console.log("Record ID:", data.id);
-    console.log("Is scam:", data.is_scam);
-    console.log("Biases:", data.biases);
+    console.log("Word count:", data.word_count);
+    console.log("Scam notes:", data.scam_notes);
+    console.log("Bias notes:", data.bias_notes);
     ```
 
-The response includes a `pdf` field containing the full report as a **base64-encoded string**, and an `id` you can use to retrieve the PDF later.
+The response includes a `pdf` field containing the full report as a **base64-encoded string**.
 
 ### Step 2 — Save the PDF
 
@@ -175,34 +172,6 @@ The response includes a `pdf` field containing the full report as a **base64-enc
     a.download = "report.pdf";
     a.click();
     ```
-
-### Step 3 — Retrieve the PDF later by ID
-
-=== "curl"
-
-    ```bash
-    curl -o report.pdf \
-      "http://127.0.0.1:8000/clearview/<record_id>"
-    ```
-
-=== "Python"
-
-    ```python
-    r = httpx.get(f"http://127.0.0.1:8000/clearview/{data['id']}")
-    with open("report.pdf", "wb") as f:
-        f.write(r.content)
-    ```
-
-=== "JavaScript"
-
-    ```js
-    const pdfRes = await fetch(`http://127.0.0.1:8000/clearview/${data.id}`);
-    const blob = await pdfRes.blob();
-    const url = URL.createObjectURL(blob);
-    // open or download the blob as needed
-    ```
-
----
 
 ## Next steps
 

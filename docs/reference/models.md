@@ -48,35 +48,29 @@ Returned by `POST /clearview`.
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | `string` | UUID uniquely identifying this analysis. Use with `GET /clearview/{id}`. |
 | `title` | `string` | Extracted document title |
 | `content` | `string` | Full extracted text content |
 | `source` | `string` | Original source URL or input path |
 | `word_count` | `integer` | Number of words in the extracted content |
 | `summary` | `string \| null` | Auto-generated summary. `null` if summarization failed. |
-| `is_scam` | `boolean` | `true` if the content was classified as potentially fraudulent |
 | `scam_notes` | `string \| null` | Human-readable explanation of the scam classification |
-| `is_subjective` | `boolean` | `true` if the content is predominantly opinionated or editorial |
 | `subjective_notes` | `string \| null` | Human-readable explanation of the objectivity classification |
-| `biases` | `string[]` | Bias category labels whose confidence scores met or exceeded the threshold. Empty if none detected. |
 | `bias_notes` | `string \| null` | Human-readable explanation of detected biases |
+| `ai_section` | `string \| null` | Combined analysis section text used in output |
 | `pdf` | `string` | Base64-encoded PDF report. Decode with `base64.b64decode()` (Python) or `atob()` (JS). |
 | `error` | `string \| null` | Non-null if a non-fatal error occurred during processing |
 
 ```json
 {
-  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "title": "Example Article",
   "content": "Full article text...",
   "source": "https://example.com/article",
   "word_count": 842,
   "summary": "A brief summary.",
-  "is_scam": false,
   "scam_notes": null,
-  "is_subjective": true,
   "subjective_notes": "The article contains editorial language.",
-  "biases": ["political_left"],
   "bias_notes": "One bias type exceeded the confidence threshold.",
+  "ai_section": "Combined AI analysis content.",
   "pdf": "<base64 string>",
   "error": null
 }

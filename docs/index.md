@@ -30,9 +30,7 @@ https://clearwayapi.tech
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/clearview` | Analyze a document and receive a PDF report |
-| `GET` | `/clearview/{id}` | Download a previously generated PDF |
 | `POST` | `/audio` | Convert a document to an MP3 audio file |
-| `GET` | `/audio/{id}` | Download a previously generated MP3 |
 
 ---
 

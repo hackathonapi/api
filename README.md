@@ -15,15 +15,13 @@ pip install -r requirements.txt
 uvicorn src.main:app --reload
 ```
 
-Copy `.env.example` to `.env` and fill in your `OPENAI_API_KEY` and `ELEVENLABS_API_KEY`. Place `firebase-credentials.json` in the project root.
+Copy `.env.example` to `.env` and fill in your `OPENAI_API_KEY` and `ELEVENLABS_API_KEY`.
 
 ## Endpoints
 
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/clearview` | Analyze a document and receive a PDF report |
-| `GET` | `/clearview/{id}` | Download a previously generated PDF |
 | `POST` | `/audio` | Convert a document to an MP3 audio file |
-| `GET` | `/audio/{id}` | Download a previously generated MP3 |
 
 See the [full documentation](https://clearwayapi.tech/docs) for request/response schemas and code examples.
