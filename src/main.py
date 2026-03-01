@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from .routers.extract import router as extract_router
 from .routers.summarizer import router as summarizer_router
 from .routers.clearview import router as clearview_router
+from .routers.audiobook import router as audiobook_router
 
 
 @asynccontextmanager
@@ -19,6 +20,7 @@ app = FastAPI(title="Clearway API", lifespan=lifespan)
 app.include_router(extract_router)
 app.include_router(summarizer_router)
 app.include_router(clearview_router)
+app.include_router(audiobook_router)
 
 @app.get("/")
 def root():

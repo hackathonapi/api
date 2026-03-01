@@ -7,5 +7,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
+    elevenlabs_api_key: str = ""
+    elevenlabs_model: str = "eleven_turbo_v2_5"
+
 
 settings = Settings()

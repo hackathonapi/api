@@ -13,3 +13,4 @@ fpdf2
 openai
 sumy
 nltk
+elevenlabs
