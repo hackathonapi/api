@@ -18,6 +18,10 @@ ENV/
 .env
 .env.*
 
+# Firebase service account key
+firebase-credentials.json
+*-firebase-adminsdk-*.json
+
 # Testing & coverage
 .pytest_cache/
 .coverage

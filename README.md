@@ -24,6 +24,7 @@ A document intelligence API that analyzes articles, web pages, and PDFs for bias
 | Text-to-speech | ElevenLabs (`eleven_turbo_v2_5`) / gTTS fallback |
 | PDF generation | fpdf2 |
 | Web scraping | newspaper4k, PyMuPDF |
+| Storage | Firebase |
 
 ---
 
