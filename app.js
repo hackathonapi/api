@@ -20,8 +20,6 @@ const credReason  = document.getElementById("credibility-reason");
 const scamReason  = document.getElementById("scam-reason");
 
 // PDF
-const pdfEmpty    = document.getElementById("pdf-empty");
-const pdfFrame    = document.getElementById("pdf-frame");
 const pdfDownload = document.getElementById("pdf-download");
 
 // Audio
@@ -73,7 +71,7 @@ function showResults(data) {
   // Credibility metric
   const cred = data.credibility ?? null;
   if (cred != null) {
-    const s = /high|credible|reliable/i.test(cred) ? "good" : /moderate|mixed/i.test(cred) ? "warn" : "bad";
+    const s = data.credibility_state ?? (/high/i.test(cred) ? "good" : /moderate/i.test(cred) ? "warn" : "bad");
     const r = data.credibility_reason ?? `Source credibility assessed as "${cred}".`;
     applyMetric(metricCred, credValue, credReason, cred, r, s);
   } else {
@@ -92,14 +90,10 @@ function showResults(data) {
       "Scam analysis not returned by the API yet.", "neutral");
   }
 
-  // PDF viewer
+  // PDF download
   if (data.pdf_url) {
-    if (pdfEmpty) pdfEmpty.hidden = true;
-    if (pdfFrame) { pdfFrame.src = data.pdf_url; pdfFrame.hidden = false; }
     if (pdfDownload) { pdfDownload.href = data.pdf_url; pdfDownload.removeAttribute("aria-disabled"); }
   } else {
-    if (pdfEmpty) pdfEmpty.hidden = false;
-    if (pdfFrame) { pdfFrame.src = ""; pdfFrame.hidden = true; }
     if (pdfDownload) { pdfDownload.setAttribute("aria-disabled", "true"); pdfDownload.href = "#"; }
   }
 
@@ -173,13 +167,33 @@ async function runRequest() {
     const scamLabel  = clearview.is_scam ? "High" : "None";
     const scamReason = clearview.scam_notes ?? null;
 
+    // Credibility: derive from scam + bias + subjectivity signals
+    let credLabel, credState, credReason;
+    if (clearview.is_scam) {
+      credLabel = "Low"; credState = "bad";
+      credReason = "Scam signals detected, which strongly reduces source credibility.";
+    } else if (clearview.biases?.length > 0 && clearview.is_subjective) {
+      credLabel = "Low"; credState = "bad";
+      credReason = clearview.bias_notes ?? "Bias and subjective language both detected.";
+    } else if (clearview.biases?.length > 0 || clearview.is_subjective) {
+      credLabel = "Moderate"; credState = "warn";
+      credReason = clearview.bias_notes ?? clearview.subjective_notes
+        ?? "Some bias or subjectivity detected — consider seeking additional sources.";
+    } else {
+      credLabel = "High"; credState = "good";
+      credReason = "No significant bias, subjectivity, or scam signals detected.";
+    }
+
     showResults({
-      word_count:   clearview.word_count,
-      source:       clearview.source,
-      bias:         biasLabel,
-      bias_reason:  biasReason,
-      scam_risk:    scamLabel,
-      scam_reason:  scamReason,
+      word_count:         clearview.word_count,
+      source:             clearview.source,
+      bias:               biasLabel,
+      bias_reason:        biasReason,
+      credibility:        credLabel,
+      credibility_state:  credState,
+      credibility_reason: credReason,
+      scam_risk:          scamLabel,
+      scam_reason:        scamReason,
       pdf_url,
       audio_url,
     });
