@@ -45,6 +45,20 @@ def _divider(pdf: FPDF) -> None:
     pdf.ln(5)
 
 
+def _section_label(pdf: FPDF, label: str) -> None:
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.set_text_color(120, 120, 120)
+    pdf.cell(_TEXT_WIDTH, 5, txt=label.upper(), align="L")
+    pdf.ln(6)
+
+
+def _section_body(pdf: FPDF, text: str) -> None:
+    pdf.set_font("Helvetica", "", 9.5)
+    pdf.set_text_color(40, 40, 40)
+    pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=_sanitize(text), align="L")
+    pdf.ln(4)
+
+
 # ---------------------------------------------------------------------------
 # PDF class
 # ---------------------------------------------------------------------------
@@ -67,6 +81,12 @@ def generate_clearview(
     source: str,
     word_count: int,
     summary: Optional[str] = None,
+    is_scam: bool = False,
+    scam_notes: Optional[str] = None,
+    is_subjective: bool = False,
+    subjective_notes: Optional[str] = None,
+    biases: Optional[list[str]] = None,
+    bias_notes: Optional[str] = None,
 ) -> bytes:
     pdf = _ClearviewPDF(format="A4")
     pdf.set_auto_page_break(auto=True, margin=20)
@@ -76,7 +96,7 @@ def generate_clearview(
     # ── Title ──────────────────────────────────────────────────────────────
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(15, 15, 15)
-    pdf.multi_cell(_TEXT_WIDTH, 9, txt=_sanitize(title or "Article Clearview"), align="L")
+    pdf.multi_cell(_TEXT_WIDTH, 9, txt=_sanitize(title or "Raw Text Clearview"), align="L")
     pdf.ln(2)
 
     # ── Byline: Reading Time | Words ───────────────────────────────────────
@@ -96,30 +116,53 @@ def generate_clearview(
         para = " ".join(line.strip() for line in para.splitlines() if line.strip())
         pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=para, align="L")
         pdf.ln(2)
-    pdf.ln(3)
 
+    # ── Analysis page ──────────────────────────────────────────────────────
+    pdf.add_page()
+
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_text_color(15, 15, 15)
+    pdf.cell(_TEXT_WIDTH, 10, txt="Analysis", align="L")
+    pdf.ln(12)
+
+    # Summary
+    if summary:
+        _section_label(pdf, "Summary")
+        _section_body(pdf, summary)
+        _divider(pdf)
+
+    # Safety
+    safety_label = "Likely Scam" if is_scam else "Appears Safe"
+    safety_line = f"Verdict: {safety_label}"
+    _section_label(pdf, "Safety Check")
+    _section_body(pdf, safety_line)
+    if scam_notes:
+        _section_body(pdf, scam_notes)
     _divider(pdf)
 
-    # ── Summary ────────────────────────────────────────────────────────────
-    if summary:
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.set_text_color(100, 100, 100)
-        pdf.cell(_TEXT_WIDTH, 6, txt="Summary", align="L")
-        pdf.ln(6)
-        pdf.set_font("Helvetica", "", 9.5)
-        pdf.set_text_color(70, 70, 70)
-        summary_text = " ".join(_sanitize(summary).split())
-        pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=summary_text, align="L")
-        pdf.ln(5)
+    # Objectivity
+    objectivity_label = "Primarily Subjective" if is_subjective else "Primarily Objective"
+    _section_label(pdf, "Objectivity")
+    _section_body(pdf, f"Verdict: {objectivity_label}")
+    if subjective_notes:
+        _section_body(pdf, subjective_notes)
+    _divider(pdf)
 
-    # ── Source ─────────────────────────────────────────────────────────────
+    # Bias
+    _section_label(pdf, "Bias Analysis")
+    if biases:
+        _section_body(pdf, "Detected biases: " + ", ".join(biases))
+    else:
+        _section_body(pdf, "No significant biases detected.")
+    if bias_notes:
+        _section_body(pdf, bias_notes)
+    _divider(pdf)
+
+    # Source
     if source:
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.set_text_color(100, 100, 100)
-        pdf.cell(_TEXT_WIDTH, 6, txt="Source", align="L")
-        pdf.ln(6)
+        _section_label(pdf, "Source")
         pdf.set_font("Helvetica", "", 9.5)
-        pdf.set_text_color(130, 130, 130)
+        pdf.set_text_color(100, 100, 180)
         pdf.multi_cell(_TEXT_WIDTH, 5.5, txt=_sanitize(source), align="L")
 
     return bytes(pdf.output())

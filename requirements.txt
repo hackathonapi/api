@@ -16,3 +16,5 @@ nltk
 elevenlabs
 transformers
 torch
+firebase-admin
+gTTS

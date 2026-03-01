@@ -62,7 +62,17 @@ async def clearview_route(request: InputRequest) -> ClearviewResponse:
         logger.warning("Sentiment analysis failed: %s", sentiment_result)
         sentiment_result = None
 
-    # 3. Generate PDF
+    # 3. Build response fields
+    record_id = str(uuid.uuid4())
+    title = extraction.title or "Article Clearview"
+    is_scam = scam_result.is_scam if scam_result else False
+    scam_notes = scam_result.notes if scam_result else None
+    is_subjective = objectivity_result.is_subjective if objectivity_result else False
+    subjective_notes = objectivity_result.notes if objectivity_result else None
+    biases = sentiment_result.biases_above_cutoff if sentiment_result else []
+    bias_notes = sentiment_result.notes if sentiment_result else None
+
+    # 4. Generate PDF
     try:
         pdf_bytes = await asyncio.to_thread(
             generate_clearview,
@@ -71,6 +81,12 @@ async def clearview_route(request: InputRequest) -> ClearviewResponse:
             extraction.source,
             extraction.word_count,
             summary_text,
+            is_scam,
+            scam_notes,
+            is_subjective,
+            subjective_notes,
+            biases,
+            bias_notes,
         )
     except Exception as exc:
         raise HTTPException(
@@ -78,33 +94,37 @@ async def clearview_route(request: InputRequest) -> ClearviewResponse:
             detail=f"Clearview generation failed: {exc}",
         )
 
-    # 4. Save to Firebase
-    record_id = str(uuid.uuid4())
+    # 5. Save full analysis to Firebase
     await firebase_service.save_clearway(
         record_id,
         {
-            "title": extraction.title or "Article Clearview",
+            "title": title,
             "content": extraction.content,
-            "source": extraction.source,
             "word_count": extraction.word_count,
             "summary": summary_text,
+            "is_scam": is_scam,
+            "scam_notes": scam_notes,
+            "is_subjective": is_subjective,
+            "subjective_notes": subjective_notes,
+            "biases": biases,
+            "bias_notes": bias_notes,
         },
         pdf_bytes,
     )
 
     return ClearviewResponse(
         id=record_id,
-        title=extraction.title or "Article Clearview",
+        title=title,
         content=extraction.content,
         source=extraction.source,
         word_count=extraction.word_count,
         summary=summary_text,
-        is_scam=scam_result.is_scam if scam_result else False,
-        scam_notes=scam_result.notes if scam_result else None,
-        is_subjective=objectivity_result.is_subjective if objectivity_result else False,
-        subjective_notes=objectivity_result.notes if objectivity_result else None,
-        biases=sentiment_result.biases_above_cutoff if sentiment_result else [],
-        bias_notes=sentiment_result.notes if sentiment_result else None,
+        is_scam=is_scam,
+        scam_notes=scam_notes,
+        is_subjective=is_subjective,
+        subjective_notes=subjective_notes,
+        biases=biases,
+        bias_notes=bias_notes,
         pdf=base64.b64encode(pdf_bytes).decode(),
         error=None,
     )

@@ -19,7 +19,7 @@ router = APIRouter(tags=["Audio"])
 async def audio_route(request: AudioRequest) -> StreamingResponse:
     try:
         audio_bytes, extraction = await generate_audio(
-            request.input, request.voice_id or DEFAULT_VOICE_ID
+            request.input, DEFAULT_VOICE_ID
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
@@ -32,8 +32,9 @@ async def audio_route(request: AudioRequest) -> StreamingResponse:
         {
             "title": extraction.title,
             "content": extraction.content,
-            "source": extraction.source,
             "word_count": extraction.word_count,
+            "input_type": extraction.input_type,
+            "extraction_method": extraction.extraction_method,
         },
         audio_bytes,
     )
@@ -51,7 +52,7 @@ async def audio_route(request: AudioRequest) -> StreamingResponse:
 
 # ─────────────────────────────────────────────
 # GET /audio/{record_id}
-# Download the MP3 file for a previously generated audiobook
+# Download the WAV file for a previously generated audiobook
 # ─────────────────────────────────────────────
 
 @router.get("/audio/{record_id}")

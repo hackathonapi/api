@@ -1,107 +1,97 @@
 import asyncio
+import base64
+import logging
 import os
 from datetime import datetime, timezone
 
 import firebase_admin
-from firebase_admin import credentials, firestore, storage
+from firebase_admin import credentials, db
 from fastapi import HTTPException, status
 
+logger = logging.getLogger(__name__)
 
 def _init_firebase() -> None:
     if firebase_admin._apps:
         return
-    creds_path = os.environ.get("FIREBASE_CREDENTIALS_PATH")
-    bucket = os.environ.get("FIREBASE_STORAGE_BUCKET")
-    if not creds_path or not bucket:
+    import json
+    database_url = os.environ.get("FIREBASE_DATABASE_URL")
+    creds_json = os.environ.get("FIREBASE_CREDENTIALS_JSON")
+    if not database_url or not creds_json:
         raise RuntimeError(
-            "Firebase not configured: set FIREBASE_CREDENTIALS_PATH and "
-            "FIREBASE_STORAGE_BUCKET in .env"
+            "Firebase not configured: set FIREBASE_CREDENTIALS_JSON and "
+            "FIREBASE_DATABASE_URL in .env"
         )
-    cred = credentials.Certificate(creds_path)
-    firebase_admin.initialize_app(cred, {"storageBucket": bucket})
+    cred = credentials.Certificate(json.loads(creds_json))
+    firebase_admin.initialize_app(cred, {"databaseURL": database_url})
 
 
 # ─────────────────────────────────────────────
-# Clearway
+# Clearview  →  /clearview/{record_id}
 # ─────────────────────────────────────────────
 
 async def save_clearway(record_id: str, metadata: dict, pdf_bytes: bytes) -> None:
-    _init_firebase()
-    storage_path = f"clearway/{record_id}.pdf"
+    try:
+        _init_firebase()
 
-    def _run() -> None:
-        bucket = storage.bucket()
-        bucket.blob(storage_path).upload_from_string(pdf_bytes, content_type="application/pdf")
+        def _run() -> None:
+            db.reference(f"/clearview/{record_id}").set({
+                **metadata,
+                "pdf": base64.b64encode(pdf_bytes).decode("ascii"),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
 
-        db = firestore.client()
-        db.collection("clearway").document(record_id).set({
-            **metadata,
-            "storage_path": storage_path,
-            "created_at": datetime.now(timezone.utc),
-        })
-
-    await asyncio.to_thread(_run)
+        await asyncio.to_thread(_run)
+    except Exception as exc:
+        logger.warning("Firebase save_clearway failed (%s); continuing.", exc)
 
 
 async def get_clearway(record_id: str) -> tuple[dict, bytes]:
     _init_firebase()
 
-    def _run() -> tuple[dict | None, bytes | None]:
-        db = firestore.client()
-        doc = db.collection("clearway").document(record_id).get()
-        if not doc.exists:
-            return None, None
-        meta = doc.to_dict()
-        pdf_bytes = storage.bucket().blob(meta["storage_path"]).download_as_bytes()
-        return meta, pdf_bytes
+    def _run() -> dict | None:
+        return db.reference(f"/clearview/{record_id}").get()
 
-    meta, pdf_bytes = await asyncio.to_thread(_run)
-    if meta is None:
+    data = await asyncio.to_thread(_run)
+    if not data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Clearway record '{record_id}' not found.",
+            detail=f"Clearview record '{record_id}' not found.",
         )
-    return meta, pdf_bytes
+    pdf_bytes = base64.b64decode(data.pop("pdf", ""))
+    return data, pdf_bytes
 
 
 # ─────────────────────────────────────────────
-# Audio
+# Audio  →  /audio/{record_id}
 # ─────────────────────────────────────────────
 
 async def save_audio(record_id: str, metadata: dict, mp3_bytes: bytes) -> None:
-    _init_firebase()
-    storage_path = f"audio/{record_id}.mp3"
+    try:
+        _init_firebase()
 
-    def _run() -> None:
-        bucket = storage.bucket()
-        bucket.blob(storage_path).upload_from_string(mp3_bytes, content_type="audio/mpeg")
+        def _run() -> None:
+            db.reference(f"/audio/{record_id}").set({
+                **metadata,
+                "audio": base64.b64encode(mp3_bytes).decode("ascii"),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
 
-        db = firestore.client()
-        db.collection("audio").document(record_id).set({
-            **metadata,
-            "storage_path": storage_path,
-            "created_at": datetime.now(timezone.utc),
-        })
-
-    await asyncio.to_thread(_run)
+        await asyncio.to_thread(_run)
+    except Exception as exc:
+        logger.warning("Firebase save_audio failed (%s); continuing.", exc)
 
 
 async def get_audio(record_id: str) -> tuple[dict, bytes]:
     _init_firebase()
 
-    def _run() -> tuple[dict | None, bytes | None]:
-        db = firestore.client()
-        doc = db.collection("audio").document(record_id).get()
-        if not doc.exists:
-            return None, None
-        meta = doc.to_dict()
-        mp3_bytes = storage.bucket().blob(meta["storage_path"]).download_as_bytes()
-        return meta, mp3_bytes
+    def _run() -> dict | None:
+        return db.reference(f"/audio/{record_id}").get()
 
-    meta, mp3_bytes = await asyncio.to_thread(_run)
-    if meta is None:
+    data = await asyncio.to_thread(_run)
+    if not data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Audio record '{record_id}' not found.",
         )
-    return meta, mp3_bytes
+    mp3_bytes = base64.b64decode(data.pop("audio", ""))
+    return data, mp3_bytes
