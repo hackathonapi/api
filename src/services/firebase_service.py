@@ -1,28 +1,28 @@
 import asyncio
-import base64
+import json
 import logging
 import os
 from datetime import datetime, timezone
 
 import firebase_admin
-from firebase_admin import credentials, db
+from firebase_admin import credentials, storage
 from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
+
 def _init_firebase() -> None:
     if firebase_admin._apps:
         return
-    import json
-    database_url = os.environ.get("FIREBASE_DATABASE_URL")
-    creds_json = os.environ.get("FIREBASE_CREDENTIALS_JSON")
-    if not database_url or not creds_json:
+    creds_path = os.environ.get("FIREBASE_CREDENTIALS_PATH")
+    bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET")
+    if not creds_path or not bucket_name:
         raise RuntimeError(
-            "Firebase not configured: set FIREBASE_CREDENTIALS_JSON and "
-            "FIREBASE_DATABASE_URL in .env"
+            "Firebase not configured: set FIREBASE_CREDENTIALS_PATH and "
+            "FIREBASE_STORAGE_BUCKET in .env"
         )
-    cred = credentials.Certificate(json.loads(creds_json))
-    firebase_admin.initialize_app(cred, {"databaseURL": database_url})
+    cred = credentials.Certificate(creds_path)
+    firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
 
 
 # ─────────────────────────────────────────────
@@ -34,11 +34,14 @@ async def save_clearway(record_id: str, metadata: dict, pdf_bytes: bytes) -> Non
         _init_firebase()
 
         def _run() -> None:
-            db.reference(f"/clearview/{record_id}").set({
-                **metadata,
-                "pdf": base64.b64encode(pdf_bytes).decode("ascii"),
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            })
+            bucket = storage.bucket()
+            meta_blob = bucket.blob(f"clearview/{record_id}/metadata.json")
+            meta_blob.upload_from_string(
+                json.dumps({**metadata, "created_at": datetime.now(timezone.utc).isoformat()}),
+                content_type="application/json",
+            )
+            pdf_blob = bucket.blob(f"clearview/{record_id}/document.pdf")
+            pdf_blob.upload_from_string(pdf_bytes, content_type="application/pdf")
 
         await asyncio.to_thread(_run)
     except Exception as exc:
@@ -48,17 +51,22 @@ async def save_clearway(record_id: str, metadata: dict, pdf_bytes: bytes) -> Non
 async def get_clearway(record_id: str) -> tuple[dict, bytes]:
     _init_firebase()
 
-    def _run() -> dict | None:
-        return db.reference(f"/clearview/{record_id}").get()
+    def _run() -> tuple[dict, bytes] | None:
+        bucket = storage.bucket()
+        meta_blob = bucket.blob(f"clearview/{record_id}/metadata.json")
+        if not meta_blob.exists():
+            return None
+        metadata = json.loads(meta_blob.download_as_text())
+        pdf_bytes = bucket.blob(f"clearview/{record_id}/document.pdf").download_as_bytes()
+        return metadata, pdf_bytes
 
-    data = await asyncio.to_thread(_run)
-    if not data:
+    result = await asyncio.to_thread(_run)
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Clearview record '{record_id}' not found.",
         )
-    pdf_bytes = base64.b64decode(data.pop("pdf", ""))
-    return data, pdf_bytes
+    return result
 
 
 # ─────────────────────────────────────────────
@@ -70,11 +78,14 @@ async def save_audio(record_id: str, metadata: dict, mp3_bytes: bytes) -> None:
         _init_firebase()
 
         def _run() -> None:
-            db.reference(f"/audio/{record_id}").set({
-                **metadata,
-                "audio": base64.b64encode(mp3_bytes).decode("ascii"),
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            })
+            bucket = storage.bucket()
+            meta_blob = bucket.blob(f"audio/{record_id}/metadata.json")
+            meta_blob.upload_from_string(
+                json.dumps({**metadata, "created_at": datetime.now(timezone.utc).isoformat()}),
+                content_type="application/json",
+            )
+            audio_blob = bucket.blob(f"audio/{record_id}/audio.mp3")
+            audio_blob.upload_from_string(mp3_bytes, content_type="audio/mpeg")
 
         await asyncio.to_thread(_run)
     except Exception as exc:
@@ -84,14 +95,19 @@ async def save_audio(record_id: str, metadata: dict, mp3_bytes: bytes) -> None:
 async def get_audio(record_id: str) -> tuple[dict, bytes]:
     _init_firebase()
 
-    def _run() -> dict | None:
-        return db.reference(f"/audio/{record_id}").get()
+    def _run() -> tuple[dict, bytes] | None:
+        bucket = storage.bucket()
+        meta_blob = bucket.blob(f"audio/{record_id}/metadata.json")
+        if not meta_blob.exists():
+            return None
+        metadata = json.loads(meta_blob.download_as_text())
+        mp3_bytes = bucket.blob(f"audio/{record_id}/audio.mp3").download_as_bytes()
+        return metadata, mp3_bytes
 
-    data = await asyncio.to_thread(_run)
-    if not data:
+    result = await asyncio.to_thread(_run)
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Audio record '{record_id}' not found.",
         )
-    mp3_bytes = base64.b64decode(data.pop("audio", ""))
-    return data, mp3_bytes
+    return result
