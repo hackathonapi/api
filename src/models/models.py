@@ -9,8 +9,7 @@ class InputRequest(BaseModel):
 
 class AudioRequest(BaseModel):
     input: str
-    voice_id: Optional[str] = None
-
+    
 
 class ExtractionResult(BaseModel):
     title: str
