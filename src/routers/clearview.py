@@ -27,7 +27,7 @@ async def generate_clearview_route(request: ExtractRequest) -> ClearviewResponse
         )
 
     # 2. Summarize
-    summary_text, _ = await summarize(extraction.content, int(max(1, min(extraction.word_count / 100, 20))))
+    summary_text, _ = await summarize(extraction.content, max(1, min(extraction.word_count // 100, 20)))
 
     # 3. Generate PDF
     data = ClearviewData(

@@ -2,7 +2,7 @@ import base64
 import requests
 
 response = requests.post(
-    "http://localhost:8000/clearview",
+    "https://hackathon-api-87l4.onrender.com/clearview",
     json={
         "input": "https://www.earthwin.org/blogs/news/your-home-is-burning-because-our-home-is-being-destroyed?gad_source=1&gad_campaignid=22643414352&gbraid=0AAAAA90agjghMfkUgRmLQYu5_pvw1upGs&gclid=Cj0KCQiAwYrNBhDcARIsAGo3u33sj2QaLA7PBIr3rVXAeRbdPE9DDxOtOCl9r-JrzYRQSmwP7HGZ_xEaAkWkEALw_wcB"
     },
