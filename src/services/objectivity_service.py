@@ -160,27 +160,11 @@ async def _generate_notes(text: str, subjective_probability: float, is_subjectiv
 
 
 async def detect_objectivity(text: str) -> ObjectivityAnalysisResult:
-    if not text or not text.strip():
-        raise ValueError("Text cannot be empty for objectivity analysis.")
-
-    error: str | None = None
-    subj_prob = 0.5
-    obj_prob = 0.5
-
-    try:
-        loop = asyncio.get_event_loop()
-        subj_prob, obj_prob = await loop.run_in_executor(None, _run_classifier_sync, text)
-    except Exception as exc:
-        logger.warning("Objectivity classifier failed (%s).", exc)
-        error = str(exc)
-
-    is_subjective = subj_prob >= _THRESHOLD
-    notes = await _generate_notes(text, subj_prob, is_subjective)
-
+    # TEMPORARILY DISABLED — models removed for deployment testing
     return ObjectivityAnalysisResult(
-        subjective_probability=subj_prob,
-        objective_probability=obj_prob,
-        is_subjective=is_subjective,
-        notes=notes,
-        error=error,
+        subjective_probability=0.0,
+        objective_probability=1.0,
+        is_subjective=False,
+        notes="Objectivity analysis temporarily disabled.",
+        error=None,
     )

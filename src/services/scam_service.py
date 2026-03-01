@@ -159,27 +159,11 @@ async def _generate_notes(text: str, scam_probability: float, is_scam: bool) -> 
 
 
 async def detect_scam(text: str) -> ScamAnalysisResult:
-    if not text or not text.strip():
-        raise ValueError("Text cannot be empty for scam analysis.")
-
-    error: str | None = None
-    scam_prob = 0.0
-    non_scam_prob = 1.0
-
-    try:
-        loop = asyncio.get_event_loop()
-        scam_prob, non_scam_prob = await loop.run_in_executor(None, _run_classifier_sync, text)
-    except Exception as exc:
-        logger.warning("Scam classifier failed (%s).", exc)
-        error = str(exc)
-
-    is_scam = scam_prob >= _THRESHOLD
-    notes = await _generate_notes(text, scam_prob, is_scam)
-
+    # TEMPORARILY DISABLED — models removed for deployment testing
     return ScamAnalysisResult(
-        scam_probability=scam_prob,
-        non_scam_probability=non_scam_prob,
-        is_scam=is_scam,
-        notes=notes,
-        error=error,
+        scam_probability=0.0,
+        non_scam_probability=1.0,
+        is_scam=False,
+        notes="Scam analysis temporarily disabled.",
+        error=None,
     )

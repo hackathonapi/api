@@ -135,26 +135,11 @@ async def _generate_notes(text: str, biases_above_cutoff: list[str]) -> str:
 
 
 async def analyze_sentiment(text: str) -> SentimentAnalysisResult:
-    if not text or not text.strip():
-        raise ValueError("Text cannot be empty for sentiment analysis.")
-
-    bias_scores: dict[str, float] = {}
-    error: str | None = None
-
-    try:
-        loop = asyncio.get_event_loop()
-        bias_scores = await loop.run_in_executor(None, _run_classifier_sync, text)
-    except Exception as exc:
-        logger.warning("Bias classifier failed (%s).", exc)
-        error = str(exc)
-
-    biases_above_cutoff = [k for k, v in bias_scores.items() if v >= _BIAS_CUTOFF]
-    notes = await _generate_notes(text, biases_above_cutoff)
-
+    # TEMPORARILY DISABLED — models removed for deployment testing
     return SentimentAnalysisResult(
         bias_cutoff=_BIAS_CUTOFF,
-        bias_scores=bias_scores,
-        biases_above_cutoff=biases_above_cutoff,
-        notes=notes,
-        error=error,
+        bias_scores={},
+        biases_above_cutoff=[],
+        notes="Bias analysis temporarily disabled.",
+        error=None,
     )

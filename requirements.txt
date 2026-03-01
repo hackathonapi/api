@@ -14,7 +14,5 @@ openai
 sumy
 nltk
 elevenlabs
-transformers
-torch
 firebase-admin
 gTTS
