@@ -1,8 +1,10 @@
 import asyncio
 import base64
 import logging
+import uuid
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import Response
 
 from ..models.models import ClearviewResponse, InputRequest
 from ..services.extractor_service import extract
@@ -11,10 +13,16 @@ from ..services.clearview_service import generate_clearview
 from ..services.scam_service import detect_scam
 from ..services.objectivity_service import detect_objectivity
 from ..services.sentiment_service import analyze_sentiment
+from ..services import firebase_service
 
 router = APIRouter(tags=["Clearview"])
 logger = logging.getLogger(__name__)
 
+
+# ─────────────────────────────────────────────
+# POST /clearview
+# Extract → Parallel analysis → Generate PDF → Save to Firebase
+# ─────────────────────────────────────────────
 
 @router.post("/clearview", response_model=ClearviewResponse)
 async def clearview_route(request: InputRequest) -> ClearviewResponse:
@@ -70,7 +78,22 @@ async def clearview_route(request: InputRequest) -> ClearviewResponse:
             detail=f"Clearview generation failed: {exc}",
         )
 
+    # 4. Save to Firebase
+    record_id = str(uuid.uuid4())
+    await firebase_service.save_clearway(
+        record_id,
+        {
+            "title": extraction.title or "Article Clearview",
+            "content": extraction.content,
+            "source": extraction.source,
+            "word_count": extraction.word_count,
+            "summary": summary_text,
+        },
+        pdf_bytes,
+    )
+
     return ClearviewResponse(
+        id=record_id,
         title=extraction.title or "Article Clearview",
         content=extraction.content,
         source=extraction.source,
@@ -84,4 +107,20 @@ async def clearview_route(request: InputRequest) -> ClearviewResponse:
         bias_notes=sentiment_result.notes if sentiment_result else None,
         pdf=base64.b64encode(pdf_bytes).decode(),
         error=None,
+    )
+
+
+# ─────────────────────────────────────────────
+# GET /clearview/{record_id}
+# Download the PDF file for a previously generated Clearview
+# ─────────────────────────────────────────────
+
+@router.get("/clearview/{record_id}")
+async def get_clearview_route(record_id: str) -> Response:
+    meta, pdf_bytes = await firebase_service.get_clearway(record_id)
+    filename = meta.get("title", record_id).replace("/", "-")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.pdf"'},
     )
