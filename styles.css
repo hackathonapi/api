@@ -485,6 +485,7 @@ body::after {
   padding: 0.25rem 0 0.5rem;
   font-style: italic;
 }
+.audio-empty[hidden] { display: none; }
 
 #audio-player {
   display: block;
@@ -606,10 +607,6 @@ body::after {
   font-size: 0.72rem;
   color: var(--muted);
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 /* ─────────────────────────────────────────────────
