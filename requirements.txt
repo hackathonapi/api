@@ -11,5 +11,3 @@ lxml-html-clean
 pymupdf
 fpdf2
 openai
-sumy
-nltk

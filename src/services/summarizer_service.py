@@ -1,31 +1,70 @@
+import heapq
 import logging
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.summarizers.lex_rank import LexRankSummarizer
+import re
+from collections import Counter
+
 from openai import AsyncOpenAI, AuthenticationError, RateLimitError, APIError
 
 from ..config import settings
 
 logger = logging.getLogger(__name__)
 
+_STOP_WORDS = {
+    "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
+    "of", "with", "by", "from", "is", "are", "was", "were", "be", "been",
+    "being", "have", "has", "had", "do", "does", "did", "will", "would",
+    "could", "should", "may", "might", "shall", "can", "it", "its", "this",
+    "that", "these", "those", "i", "you", "he", "she", "we", "they",
+    "not", "as", "if", "so", "than", "then", "when", "where", "which",
+    "who", "what", "how", "all", "also", "just", "more", "their", "there",
+}
 
 
 def _extractive_summarize(text: str, sentence_count: int) -> tuple[str | None, str | None]:
-    """Fallback using sumy LexRank."""
+    """Pure-Python fallback: word frequency + sentence scoring, no dependencies."""
     try:
-        parser = PlaintextParser.from_string(text, Tokenizer("english"))
-        summarizer = LexRankSummarizer()
-        sentences = summarizer(parser.document, sentence_count)
-        return " ".join(str(s) for s in sentences), None
+        raw: list[str] = []
+        for line in re.split(r"\n+", text.strip()):
+            raw.extend(re.split(r'(?<=[.!?])["\']?\s+(?=[A-Z"\'])', line))
+
+        sentences = []
+        for s in raw:
+            s = s.strip()
+            if len(s.split()) < 4:
+                continue
+            if not re.search(r'[.!?]["\']?\s*$', s):
+                s = s.rstrip() + "."
+            sentences.append(s)
+
+        if not sentences:
+            return None, "could not split text into sentences"
+
+        words = re.findall(r"\b[a-z]+\b", text.lower())
+        word_freq = Counter(w for w in words if w not in _STOP_WORDS)
+
+        if not word_freq:
+            return None, "no meaningful words found"
+
+        max_freq = max(word_freq.values())
+        normalized = {w: freq / max_freq for w, freq in word_freq.items()}
+
+        scores = {
+            sent: sum(normalized.get(w, 0) for w in re.findall(r"\b[a-z]+\b", sent.lower()))
+            for sent in sentences
+        }
+
+        top = heapq.nlargest(sentence_count, scores, key=scores.get)
+        top_ordered = sorted(top, key=lambda s: text.index(s))
+        return " ".join(top_ordered), None
 
     except Exception as exc:
-        logger.warning("sumy fallback failed: %s", exc)
-        return None, f"sumy error: {exc}"
+        logger.warning("Extractive fallback failed: %s", exc)
+        return None, f"extractive error: {exc}"
 
 
 async def summarize(text: str, sentence_count: int) -> tuple[str | None, str | None]:
     """
-    Try OpenAI first; fall back to sumy LexRank if no key or on failure.
+    Try OpenAI first; fall back to pure-Python extractive summarization.
     Returns (summary, error_reason). summary is None only if both methods fail.
     """
     if settings.openai_api_key:

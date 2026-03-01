@@ -1,20 +1,10 @@
-import nltk
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from .routers.extract import router as extract_router
 from .routers.summarizer import router as summarizer_router
 from .routers.clearview import router as clearview_router
 
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    nltk.download("punkt", quiet=True)
-    nltk.download("punkt_tab", quiet=True)
-    yield
-
-
-app = FastAPI(title="Clearway API", lifespan=lifespan)
+app = FastAPI(title="Clearway API")
 
 app.include_router(extract_router)
 app.include_router(summarizer_router)
