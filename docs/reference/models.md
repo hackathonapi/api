@@ -29,12 +29,10 @@ Used by `POST /audio`.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `input` | `string` | Yes | A URL, file path, or raw text string to convert |
-| `voice_id` | `string \| null` | No | ElevenLabs voice ID. Defaults to the server's configured voice if omitted. |
 
 ```json
 {
-  "input": "https://example.com/article",
-  "voice_id": null
+  "input": "https://example.com/article"
 }
 ```
 
