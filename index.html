@@ -7,13 +7,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="page">
+
+      <!-- Top bar -->
       <header class="topbar">
         <a class="brand" href="./">Clearways</a>
         <nav>
@@ -23,9 +25,9 @@
 
       <!-- Hero -->
       <section class="hero">
-        <h1>Understand any source in seconds.</h1>
+        <h1>Understand any source<br>in seconds.</h1>
         <ul class="features">
-          <li>Extract text from articles, YouTube videos, Reddit threads, and PDFs</li>
+          <li>Extract text from articles, Reddit threads, and PDFs</li>
           <li>Detect bias, source credibility issues, and scam signals</li>
           <li>Download a Clearview PDF report or listen to an audio summary</li>
         </ul>
@@ -33,101 +35,153 @@
 
       <!-- Input -->
       <div class="card input-card">
-        <textarea
-          id="input"
-          placeholder="Paste a URL or text to analyze..."
-          rows="4"
-        ></textarea>
+        <textarea id="input" placeholder="Paste a URL or text to analyze…" rows="3"></textarea>
         <div class="input-footer">
-          <button id="submit">Analyze</button>
+          <button id="submit">
+            <svg class="btn-icon-search" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <svg class="btn-icon-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            <span id="submit-label">Analyze</span>
+          </button>
           <span id="status" class="status-text" aria-live="polite"></span>
         </div>
       </div>
 
-      <!-- Results (hidden until response) -->
-      <div class="card results-card" id="results" hidden>
+      <!-- Results -->
+      <div id="results" hidden>
 
-        <!-- Three metric pills -->
-        <div class="metrics-row">
-          <div class="metric" id="metric-bias">
-            <span class="metric-dot" data-state="neutral"></span>
-            <div>
-              <div class="metric-label">Bias</div>
-              <div class="metric-value" id="bias-value">—</div>
+        <!-- ── PDF (left) + sidebar (right) ── -->
+        <div class="results-grid">
+
+          <!-- PDF viewer -->
+          <div class="card pdf-card">
+            <div class="card-head">
+              <div class="card-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Clearview PDF
+              </div>
+              <a id="pdf-download" class="btn-dl" href="#" target="_blank" aria-disabled="true">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download
+              </a>
             </div>
-          </div>
-          <div class="metric" id="metric-credibility">
-            <span class="metric-dot" data-state="neutral"></span>
-            <div>
-              <div class="metric-label">Credibility</div>
-              <div class="metric-value" id="credibility-value">—</div>
+            <div class="pdf-viewer" id="pdf-viewer">
+              <div class="pdf-empty" id="pdf-empty">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C7BFB4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <p class="pdf-empty-title">PDF will appear here after analysis</p>
+              </div>
+              <iframe id="pdf-frame" title="Clearview PDF" hidden></iframe>
             </div>
+            <p class="pdf-caption">Clearview reformats extracted content into a clean, structured PDF — ready to read or share.</p>
           </div>
-          <div class="metric" id="metric-scam">
-            <span class="metric-dot" data-state="neutral"></span>
-            <div>
-              <div class="metric-label">Scam Risk</div>
-              <div class="metric-value" id="scam-value">—</div>
+
+          <!-- Sidebar: audio + overview + statistics -->
+          <div class="sidebar">
+
+            <!-- Audio Summary -->
+            <div class="card audio-card">
+              <div class="card-head">
+                <div class="card-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                  </svg>
+                  Audio Summary
+                </div>
+                <a id="audio-download" class="btn-dl" href="#" download aria-disabled="true">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download
+                </a>
+              </div>
+              <p class="audio-empty" id="audio-empty">Not yet generated</p>
+              <audio id="audio-player" controls hidden></audio>
             </div>
-          </div>
-        </div>
 
-        <div class="rule"></div>
+            <!-- Overview (Words + Source only) -->
+            <div class="card stats-card">
+              <div class="card-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                Overview
+              </div>
+              <div class="stats-list">
+                <div class="stat-row">
+                  <span class="stat-label">Words</span>
+                  <span class="stat-value" id="stat-words">—</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Source</span>
+                  <span class="stat-value" id="stat-source">—</span>
+                </div>
+              </div>
+            </div>
 
-        <!-- Stats -->
-        <div class="stats-row">
-          <div class="stat">
-            <span class="stat-label">Words</span>
-            <span class="stat-value" id="stat-words">—</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Source</span>
-            <span class="stat-value" id="stat-source">—</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Type</span>
-            <span class="stat-value" id="stat-type">—</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Method</span>
-            <span class="stat-value" id="stat-method">—</span>
-          </div>
-        </div>
+            <!-- Statistics: Bias -->
+            <div class="mc" id="metric-bias">
+              <div class="mc-top">
+                <span class="mc-dot" data-state="neutral"></span>
+                <span class="mc-name">Bias</span>
+                <span class="mc-info" aria-label="Why">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </span>
+              </div>
+              <div class="mc-value" id="bias-value">—</div>
+              <div class="mc-tooltip" id="bias-reason">Submit a URL or text to detect potential bias in the source.</div>
+            </div>
 
-        <div class="rule"></div>
+            <!-- Statistics: Credibility -->
+            <div class="mc" id="metric-credibility">
+              <div class="mc-top">
+                <span class="mc-dot" data-state="neutral"></span>
+                <span class="mc-name">Credibility</span>
+                <span class="mc-info" aria-label="Why">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </span>
+              </div>
+              <div class="mc-value" id="credibility-value">—</div>
+              <div class="mc-tooltip" id="credibility-reason">Submit a URL or text to evaluate the credibility of the source.</div>
+            </div>
 
-        <!-- Downloads -->
-        <div class="downloads-row">
-          <a id="pdf-btn" class="btn-pdf" href="#" target="_blank" aria-disabled="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="12" y1="18" x2="12" y2="12"/>
-              <line x1="9" y1="15" x2="15" y2="15"/>
-            </svg>
-            Clearview PDF
-          </a>
+            <!-- Statistics: Scam Risk -->
+            <div class="mc" id="metric-scam">
+              <div class="mc-top">
+                <span class="mc-dot" data-state="neutral"></span>
+                <span class="mc-name">Scam Risk</span>
+                <span class="mc-info" aria-label="Why">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </span>
+              </div>
+              <div class="mc-value" id="scam-value">—</div>
+              <div class="mc-tooltip" id="scam-reason">Submit a URL or text to check for scam or misleading content signals.</div>
+            </div>
 
-          <div class="audio-block" id="audio-block">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-            </svg>
-            <audio id="audio-player" controls></audio>
-          </div>
-        </div>
+          </div><!-- /sidebar -->
+        </div><!-- /results-grid -->
 
-        <div class="rule"></div>
-
-        <!-- Extracted content -->
-        <div class="preview-header">
-          <span class="preview-label">Extracted Content</span>
-          <button id="copy" class="btn-ghost" type="button">Copy</button>
-        </div>
-        <pre id="content-text" class="content-pre"></pre>
-      </div>
-    </div>
+      </div><!-- /results -->
+    </div><!-- /page -->
 
     <script src="app.js"></script>
   </body>

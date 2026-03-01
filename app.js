@@ -1,103 +1,135 @@
-const inputEl       = document.getElementById("input");
-const submitBtn     = document.getElementById("submit");
-const statusEl      = document.getElementById("status");
-const resultsEl     = document.getElementById("results");
-const copyBtn       = document.getElementById("copy");
-const pdfBtn        = document.getElementById("pdf-btn");
-const audioPlayer   = document.getElementById("audio-player");
-const audioBlock    = document.getElementById("audio-block");
-const contentText   = document.getElementById("content-text");
+const inputEl      = document.getElementById("input");
+const submitBtn    = document.getElementById("submit");
+const submitLabel  = document.getElementById("submit-label");
+const statusEl     = document.getElementById("status");
+const resultsEl    = document.getElementById("results");
 
+// Stats
 const statWords  = document.getElementById("stat-words");
 const statSource = document.getElementById("stat-source");
-const statType   = document.getElementById("stat-type");
-const statMethod = document.getElementById("stat-method");
 
-const biasValue        = document.getElementById("bias-value");
-const credibilityValue = document.getElementById("credibility-value");
-const scamValue        = document.getElementById("scam-value");
-const metricBias       = document.getElementById("metric-bias");
-const metricCred       = document.getElementById("metric-credibility");
-const metricScam       = document.getElementById("metric-scam");
+// Metric cards
+const metricBias  = document.getElementById("metric-bias");
+const metricCred  = document.getElementById("metric-credibility");
+const metricScam  = document.getElementById("metric-scam");
+const biasValue   = document.getElementById("bias-value");
+const credValue   = document.getElementById("credibility-value");
+const scamValue   = document.getElementById("scam-value");
+const biasReason  = document.getElementById("bias-reason");
+const credReason  = document.getElementById("credibility-reason");
+const scamReason  = document.getElementById("scam-reason");
+
+// PDF
+const pdfEmpty    = document.getElementById("pdf-empty");
+const pdfFrame    = document.getElementById("pdf-frame");
+const pdfDownload = document.getElementById("pdf-download");
+
+// Audio
+const audioEmpty    = document.getElementById("audio-empty");
+const audioPlayer   = document.getElementById("audio-player");
+const audioDownload = document.getElementById("audio-download");
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg;
 }
 
 /**
- * Update a metric card.
+ * Apply state to a metric card.
  * state: "good" | "warn" | "bad" | "neutral"
  */
-function applyMetric(cardEl, valueEl, label, state) {
-  const dot = cardEl?.querySelector(".metric-dot");
+function applyMetric(card, valueEl, reasonEl, label, reason, state) {
+  const dot = card?.querySelector(".mc-dot");
   if (dot) dot.dataset.state = state;
-  if (cardEl) cardEl.dataset.active = state === "neutral" ? "" : state;
+  if (card) card.dataset.active = state === "neutral" ? "" : state;
   if (valueEl) valueEl.textContent = label;
+  if (reasonEl && reason) reasonEl.textContent = reason;
 }
 
+// ─────────────────────────────────────────────
+// Render results
+// ─────────────────────────────────────────────
+
 function showResults(data) {
-  // ── Stats ──────────────────────────────────────
+
+  // Stats
   if (statWords)  statWords.textContent  = data.word_count != null ? Number(data.word_count).toLocaleString() : "—";
   if (statSource) statSource.textContent = data.source ?? "—";
-  if (statType)   statType.textContent   = data.input_type ?? "—";
-  if (statMethod) statMethod.textContent = data.extraction_method ?? "—";
 
-  // ── Metrics (populated when API returns them) ──
+  // Bias metric
   const bias = data.bias ?? null;
   if (bias != null) {
     const s = /none|low/i.test(bias) ? "good" : /moderate|medium/i.test(bias) ? "warn" : "bad";
-    applyMetric(metricBias, biasValue, bias, s);
+    const r = data.bias_reason ?? `Bias level assessed as "${bias}".`;
+    applyMetric(metricBias, biasValue, biasReason, bias, r, s);
   } else {
-    applyMetric(metricBias, biasValue, "—", "neutral");
+    applyMetric(metricBias, biasValue, biasReason, "—",
+      "Bias analysis not returned by the API yet.", "neutral");
   }
 
+  // Credibility metric
   const cred = data.credibility ?? null;
   if (cred != null) {
     const s = /high|credible|reliable/i.test(cred) ? "good" : /moderate|mixed/i.test(cred) ? "warn" : "bad";
-    applyMetric(metricCred, credibilityValue, cred, s);
+    const r = data.credibility_reason ?? `Source credibility assessed as "${cred}".`;
+    applyMetric(metricCred, credValue, credReason, cred, r, s);
   } else {
-    applyMetric(metricCred, credibilityValue, "—", "neutral");
+    applyMetric(metricCred, credValue, credReason, "—",
+      "Credibility analysis not returned by the API yet.", "neutral");
   }
 
+  // Scam metric
   const scam = data.scam_risk ?? data.scam ?? null;
   if (scam != null) {
     const s = /none|low/i.test(scam) ? "good" : /moderate|medium/i.test(scam) ? "warn" : "bad";
-    applyMetric(metricScam, scamValue, scam, s);
+    const r = data.scam_reason ?? `Scam risk assessed as "${scam}".`;
+    applyMetric(metricScam, scamValue, scamReason, scam, r, s);
   } else {
-    applyMetric(metricScam, scamValue, "—", "neutral");
+    applyMetric(metricScam, scamValue, scamReason, "—",
+      "Scam analysis not returned by the API yet.", "neutral");
   }
 
-  // ── PDF ────────────────────────────────────────
-  if (data.pdf_url && pdfBtn) {
-    pdfBtn.href = data.pdf_url;
-    pdfBtn.removeAttribute("aria-disabled");
-  } else if (pdfBtn) {
-    pdfBtn.setAttribute("aria-disabled", "true");
-    pdfBtn.href = "#";
+  // PDF viewer
+  if (data.pdf_url) {
+    if (pdfEmpty) pdfEmpty.hidden = true;
+    if (pdfFrame) { pdfFrame.src = data.pdf_url; pdfFrame.hidden = false; }
+    if (pdfDownload) { pdfDownload.href = data.pdf_url; pdfDownload.removeAttribute("aria-disabled"); }
+  } else {
+    if (pdfEmpty) pdfEmpty.hidden = false;
+    if (pdfFrame) { pdfFrame.src = ""; pdfFrame.hidden = true; }
+    if (pdfDownload) { pdfDownload.setAttribute("aria-disabled", "true"); pdfDownload.href = "#"; }
   }
 
-  // ── Audio ──────────────────────────────────────
-  if (data.audio_url && audioPlayer) {
-    audioPlayer.src = data.audio_url;
-    if (audioBlock) audioBlock.style.display = "";
-  } else if (audioBlock) {
-    audioBlock.style.display = "none";
+  // Audio
+  if (data.audio_url) {
+    if (audioEmpty) audioEmpty.hidden = true;
+    if (audioPlayer) { audioPlayer.src = data.audio_url; audioPlayer.hidden = false; }
+    if (audioDownload) { audioDownload.href = data.audio_url; audioDownload.removeAttribute("aria-disabled"); }
+  } else {
+    if (audioEmpty) audioEmpty.hidden = false;
+    if (audioPlayer) { audioPlayer.src = ""; audioPlayer.hidden = true; }
+    if (audioDownload) { audioDownload.setAttribute("aria-disabled", "true"); audioDownload.href = "#"; }
   }
 
-  // ── Content ────────────────────────────────────
-  if (contentText) {
-    contentText.textContent = data.content ?? data.error ?? "No content returned.";
-  }
-
-  // ── Show panel ─────────────────────────────────
+  // Reveal + re-trigger stagger animations
   if (resultsEl) {
     resultsEl.hidden = false;
-    resultsEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    resultsEl.classList.remove("show");
+    void resultsEl.offsetWidth; // force reflow so animation restarts
+    resultsEl.classList.add("show");
+    setTimeout(() => resultsEl.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
 }
 
+// ─────────────────────────────────────────────
+// API call
+// ─────────────────────────────────────────────
+
 async function runRequest() {
-  const input = inputEl?.value.trim() || "";
+  const input = inputEl?.value.trim() ?? "";
   if (!input) {
     setStatus("Enter a URL or some text first.");
     inputEl?.focus();
@@ -105,7 +137,8 @@ async function runRequest() {
   }
 
   submitBtn.disabled = true;
-  setStatus("Analyzing…");
+  if (submitLabel) submitLabel.textContent = "Analyzing…";
+  setStatus("");
   if (resultsEl) resultsEl.hidden = true;
 
   try {
@@ -118,12 +151,17 @@ async function runRequest() {
     const data = await res.json();
     showResults(data);
     setStatus(res.ok ? "" : `Error ${res.status}`);
-  } catch (err) {
+  } catch {
     setStatus("Network error — is the API running?");
   } finally {
     submitBtn.disabled = false;
+    if (submitLabel) submitLabel.textContent = "Analyze";
   }
 }
+
+// ─────────────────────────────────────────────
+// Events
+// ─────────────────────────────────────────────
 
 submitBtn?.addEventListener("click", runRequest);
 
@@ -131,13 +169,3 @@ inputEl?.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") runRequest();
 });
 
-copyBtn?.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(contentText?.textContent ?? "");
-    const prev = copyBtn.textContent;
-    copyBtn.textContent = "Copied!";
-    setTimeout(() => { copyBtn.textContent = prev; }, 1800);
-  } catch {
-    setStatus("Could not copy.");
-  }
-});
