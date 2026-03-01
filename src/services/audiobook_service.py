@@ -1,10 +1,10 @@
 import logging
+import os
 from typing import Optional
 
 from elevenlabs.client import AsyncElevenLabs
 from elevenlabs.core import ApiError
 
-from ..config import settings
 from ..models.extract import ExtractRequest
 from ..models.audiobook import MAX_CHARS
 from ..services.extractor_service import extract
@@ -15,7 +15,7 @@ DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel
 
 
 async def generate_audio(input: str, voice_id: Optional[str] = None) -> bytes:
-    if not settings.elevenlabs_api_key:
+    if not os.environ.get('ELEVENLABS_AI_KEY'):
         raise ValueError("ELEVENLABS_API_KEY is not configured.")
 
     # Extract text from URL or plain text input
@@ -27,14 +27,14 @@ async def generate_audio(input: str, voice_id: Optional[str] = None) -> bytes:
     if len(text) > MAX_CHARS:
         text = text[:MAX_CHARS]
 
-    client = AsyncElevenLabs(api_key=settings.elevenlabs_api_key)
+    client = AsyncElevenLabs(api_key=os.environ.get('ELEVENLABS_AI_KEY'))
     resolved_voice = voice_id or DEFAULT_VOICE_ID
 
     try:
         audio_stream = client.text_to_speech.convert(
             text=text,
             voice_id=resolved_voice,
-            model_id=settings.elevenlabs_model,
+            model_id="eleven_turbo_v2_5",
             output_format="mp3_44100_128",
         )
         chunks = []
