@@ -11,4 +11,3 @@ fpdf2
 openai
 elevenlabs
 gTTS
-firebase-admin
