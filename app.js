@@ -142,9 +142,10 @@ async function runRequest() {
     const body = JSON.stringify({ input });
     const headers = { "Content-Type": "application/json" };
 
+    const API = "https://hackathon-api-87l4.onrender.com";
     const [clearviewRes, audioRes] = await Promise.all([
-      fetch(`${window.location.origin}/clearview`, { method: "POST", headers, body }),
-      fetch(`${window.location.origin}/audio`,     { method: "POST", headers, body }),
+      fetch(`${API}/clearview`, { method: "POST", headers, body }),
+      fetch(`${API}/audio`,     { method: "POST", headers, body }),
     ]);
 
     const [clearview, audioBlob] = await Promise.all([
