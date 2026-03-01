@@ -16,12 +16,30 @@ const audioEmpty    = document.getElementById("audio-empty");
 const audioPlayer   = document.getElementById("audio-player");
 const audioDownload = document.getElementById("audio-download");
 
+// Metric cards
+const mcBias   = document.getElementById("metric-bias");
+const mcCred   = document.getElementById("metric-credibility");
+const mcScam   = document.getElementById("metric-scam");
+const mcBiasValue  = document.getElementById("mc-bias-value");
+const mcCredValue  = document.getElementById("mc-cred-value");
+const mcScamValue  = document.getElementById("mc-scam-value");
+const mcBiasReason = document.getElementById("mc-bias-reason");
+const mcCredReason = document.getElementById("mc-cred-reason");
+const mcScamReason = document.getElementById("mc-scam-reason");
+
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg;
+}
+
+function applyMetric(card, valueEl, reasonEl, label, reason, state) {
+  if (!card) return;
+  card.dataset.active = state;
+  if (valueEl) valueEl.textContent = label;
+  if (reasonEl) reasonEl.textContent = reason ?? "";
 }
 
 // ─────────────────────────────────────────────
@@ -50,6 +68,26 @@ function showResults(data) {
     if (audioEmpty) audioEmpty.hidden = false;
     if (audioPlayer) { audioPlayer.src = ""; audioPlayer.hidden = true; }
     if (audioDownload) { audioDownload.setAttribute("aria-disabled", "true"); audioDownload.href = "#"; }
+  }
+
+  // Metric cards
+  if (data.is_scam !== undefined) {
+    const scamState = data.is_scam ? "bad" : "good";
+    const scamLabel = data.is_scam ? "High" : "Low";
+    applyMetric(mcScam, mcScamValue, mcScamReason, scamLabel, data.scam_notes, scamState);
+  }
+
+  if (data.is_subjective !== undefined) {
+    const credState = data.is_subjective ? "warn" : "good";
+    const credLabel = data.is_subjective ? "Subjective" : "Objective";
+    applyMetric(mcCred, mcCredValue, mcCredReason, credLabel, data.subjective_notes, credState);
+  }
+
+  if (data.biases !== undefined) {
+    const hasBias  = Array.isArray(data.biases) && data.biases.length > 0;
+    const biasState = hasBias ? "warn" : "good";
+    const biasLabel = hasBias ? data.biases[0] : "None detected";
+    applyMetric(mcBias, mcBiasValue, mcBiasReason, biasLabel, data.bias_notes, biasState);
   }
 
   // Re-trigger stagger animations on new results
@@ -102,10 +140,16 @@ async function runRequest() {
     const audio_url = audioBlob ? URL.createObjectURL(audioBlob) : null;
 
     showResults({
-      word_count: clearview.word_count,
-      source:     clearview.source,
+      word_count:       clearview.word_count,
+      source:           clearview.source,
       pdf_url,
       audio_url,
+      is_scam:          clearview.is_scam,
+      is_subjective:    clearview.is_subjective,
+      biases:           clearview.biases,
+      scam_notes:       clearview.scam_notes,
+      subjective_notes: clearview.subjective_notes,
+      bias_notes:       clearview.bias_notes,
     });
 
     setStatus(clearviewRes.ok ? "" : `Error ${clearviewRes.status}`);

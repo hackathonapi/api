@@ -145,6 +145,9 @@ class AnalysisResult:
     scam_notes:       Optional[str]    = None
     subjective_notes: Optional[str]    = None
     bias_notes:       Optional[str]    = None
+    is_scam:          bool             = False
+    is_subjective:    bool             = False
+    biases:           list[str]        = field(default_factory=list)
     # AI-generated sections keyed by display name (for the PDF last page)
     ai_sections:      dict[str, str]   = field(default_factory=dict)
 
@@ -294,6 +297,17 @@ def _bias_backup(scores: dict[str, float]) -> tuple[list[str], str]:
 # OpenAI — single unified call
 # ─────────────────────────────────────────────────────────────
 
+def _extract_verdict(section_text: str, keyword: str) -> tuple:
+    """Extract a YES/NO verdict from the first matching line; return (bool|None, cleaned_text)."""
+    pattern = rf"^{re.escape(keyword)}:\s*(YES|NO)\b.*$"
+    match = re.search(pattern, section_text, re.IGNORECASE | re.MULTILINE)
+    if match:
+        verdict = match.group(1).upper() == "YES"
+        cleaned = re.sub(pattern, "", section_text, count=1, flags=re.IGNORECASE | re.MULTILINE).strip()
+        return verdict, cleaned
+    return None, section_text
+
+
 def _parse_sections(raw: str) -> dict[str, str]:
     """Split OpenAI response by known section tags, return tag → content."""
     result: dict[str, str] = {}
@@ -338,13 +352,16 @@ async def _openai_analyze(
         f"Summarize the text in approximately {sentence_count} sentences. Return only the summary.\n\n"
         f"{_TAG_SCAM}\n"
         f"Heuristic scam probability: {scam_prob:.1%}. "
-        "Explain whether this content is safe or suspicious and what the reader should do.\n\n"
+        "Your first line must be exactly 'SCAM: YES' or 'SCAM: NO' (no other text on that line). "
+        "Then explain whether this content is safe or suspicious and what the reader should do.\n\n"
         f"{_TAG_OBJECTIVITY}\n"
         f"Heuristic subjectivity score: {subj_prob:.1%}. "
-        "Explain whether this text is objective or subjective and what that means for the reader.\n\n"
+        "Your first line must be exactly 'SUBJECTIVE: YES' or 'SUBJECTIVE: NO' (no other text on that line). "
+        "Then explain whether this text is objective or subjective and what that means for the reader.\n\n"
         f"{_TAG_BIAS}\n"
         f"{bias_info}. "
-        "Explain the bias patterns found (or their absence). "
+        "Your first line must be exactly 'BIASED: YES' or 'BIASED: NO' (no other text on that line). "
+        "Then explain the bias patterns found (or their absence). "
         "Do NOT describe promotional tone or writing style — only confirmed bias types.\n\n"
         f"TEXT:\n{text[:5000]}"
     )
@@ -354,7 +371,7 @@ async def _openai_analyze(
         response = await client.chat.completions.create(
             model=_MODEL,
             temperature=0.2,
-            max_tokens=700,
+            max_tokens=800,
             messages=[
                 {
                     "role": "system",
@@ -393,22 +410,46 @@ async def analyze(text: str, sentence_count: int) -> AnalysisResult:
     # ── 3. Summary ──────────────────────────────────────────────────────────
     summary = ai.get(_TAG_SUMMARY) or _extractive_summarize(text, sentence_count)
 
-    # ── 4. Scam notes ───────────────────────────────────────────────────────
-    scam_notes = ai[_TAG_SCAM] if _TAG_SCAM in ai else _scam_backup(scam_prob)
-
-    # ── 5. Objectivity notes ────────────────────────────────────────────────
-    if _TAG_OBJECTIVITY in ai:
-        subjective_notes = ai[_TAG_OBJECTIVITY]
+    # ── 4. Scam notes + verdict ─────────────────────────────────────────────
+    if _TAG_SCAM in ai:
+        gpt_is_scam, scam_notes = _extract_verdict(ai[_TAG_SCAM], "SCAM")
+        is_scam = gpt_is_scam if gpt_is_scam is not None else (scam_prob >= _HIGH)
     else:
-        _, subjective_notes = _objectivity_backup(subj_prob)
+        scam_notes = _scam_backup(scam_prob)
+        is_scam = scam_prob >= _HIGH
 
-    # ── 6. Bias notes ───────────────────────────────────────────────────────
-    bias_notes = ai[_TAG_BIAS] if _TAG_BIAS in ai else _bias_backup(bias_scores)[1]
+    # ── 5. Objectivity notes + verdict ──────────────────────────────────────
+    if _TAG_OBJECTIVITY in ai:
+        gpt_is_subjective, subjective_notes = _extract_verdict(ai[_TAG_OBJECTIVITY], "SUBJECTIVE")
+        is_subjective = gpt_is_subjective if gpt_is_subjective is not None else (subj_prob >= _HIGH)
+    else:
+        is_subjective, subjective_notes = _objectivity_backup(subj_prob)
 
-    # ── 7. AI sections for PDF last page (display name → text) ─────────────
+    # ── 6. Bias notes + verdict ──────────────────────────────────────────────
+    if _TAG_BIAS in ai:
+        gpt_is_biased, bias_notes = _extract_verdict(ai[_TAG_BIAS], "BIASED")
+        if gpt_is_biased is True:
+            biases = biases_above_mid or [k for k, v in bias_scores.items() if v > 0][:1]
+        elif gpt_is_biased is False:
+            biases = []
+        else:
+            biases = biases_above_mid
+    else:
+        biases, bias_notes = _bias_backup(bias_scores)
+
+    # ── 7. AI sections for PDF last page (display name → cleaned text) ──────
+    cleaned_ai: dict[str, str] = {}
+    if _TAG_SUMMARY in ai:
+        cleaned_ai[_TAG_SUMMARY] = ai[_TAG_SUMMARY]
+    if _TAG_SCAM in ai and scam_notes:
+        cleaned_ai[_TAG_SCAM] = scam_notes
+    if _TAG_OBJECTIVITY in ai and subjective_notes:
+        cleaned_ai[_TAG_OBJECTIVITY] = subjective_notes
+    if _TAG_BIAS in ai and bias_notes:
+        cleaned_ai[_TAG_BIAS] = bias_notes
     ai_sections = {
         _TAG_DISPLAY[tag]: text_
-        for tag, text_ in ai.items()
+        for tag, text_ in cleaned_ai.items()
         if tag in _TAG_DISPLAY
     }
 
@@ -417,5 +458,8 @@ async def analyze(text: str, sentence_count: int) -> AnalysisResult:
         scam_notes=scam_notes,
         subjective_notes=subjective_notes,
         bias_notes=bias_notes,
+        is_scam=is_scam,
+        is_subjective=is_subjective,
+        biases=biases,
         ai_sections=ai_sections,
     )

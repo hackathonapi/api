@@ -32,6 +32,9 @@ class ClearviewResponse(BaseModel):
     scam_notes: Optional[str] = None
     subjective_notes: Optional[str] = None
     bias_notes: Optional[str] = None
+    is_scam: bool = False
+    is_subjective: bool = False
+    biases: list[str] = Field(default_factory=list)
     ai_section: Optional[str] = None
     pdf: str = Field(description="Base64-encoded PDF of the Clearview report.")
     error: Optional[str]
