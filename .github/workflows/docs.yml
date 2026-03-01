@@ -1,0 +1,45 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "index.html"
+      - "app.js"
+      - "styles.css"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MkDocs
+        run: pip install mkdocs-material
+
+      - name: Build MkDocs site
+        run: mkdocs build --site-dir site
+
+      - name: Assemble gh-pages output
+        run: |
+          mkdir -p gh-pages-output/docs
+          # Frontend at root
+          cp index.html app.js styles.css CNAME gh-pages-output/
+          # MkDocs output under /docs/
+          cp -r site/* gh-pages-output/docs/
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: gh-pages-output
+          publish_branch: gh-pages

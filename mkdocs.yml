@@ -1,0 +1,43 @@
+site_name: Clearview API Docs
+site_description: Clearview API — document analysis and text-to-speech conversion
+site_url: https://clearwayapi.tech/docs/
+repo_url: https://github.com/hackathonapi/api
+repo_name: hackathonapi/api
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: indigo
+    accent: cyan
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Endpoints:
+    - Clearview (Analysis + PDF): endpoints/clearview.md
+    - Audio (Text-to-Speech): endpoints/audio.md
+  - Reference:
+    - Models: reference/models.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      linenums: false
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.inlinehilite
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
