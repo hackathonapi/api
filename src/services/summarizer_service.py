@@ -1,11 +1,10 @@
 import heapq
 import logging
 import re
+import os
 from collections import Counter
 
 from openai import AsyncOpenAI, AuthenticationError, RateLimitError, APIError
-
-from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +66,15 @@ async def summarize(text: str, sentence_count: int) -> tuple[str | None, str | N
     Try OpenAI first; fall back to pure-Python extractive summarization.
     Returns (summary, error_reason). summary is None only if both methods fail.
     """
-    if settings.openai_api_key:
+    if os.environ.get('OPEN_AI_KEY'):
         try:
-            client = AsyncOpenAI(api_key=settings.openai_api_key)
+            client = AsyncOpenAI(api_key=os.environ.get('OPEN_AI_KEY'))
             prompt = (
                 f"Summarize the following text in approximately {sentence_count} sentences. "
                 f"Return only the summary, with no preamble.\n\n{text}"
             )
             response = await client.chat.completions.create(
-                model=settings.openai_model,
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
             )
