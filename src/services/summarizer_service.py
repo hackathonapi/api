@@ -66,7 +66,7 @@ async def summarize(text: str, sentence_count: int) -> tuple[str | None, str | N
     Try OpenAI first; fall back to pure-Python extractive summarization.
     Returns (summary, error_reason). summary is None only if both methods fail.
     """
-    if os.environ.get('OPEN_AI_KEY'):
+    if os.environ.get('OPENAI_API_KEY'):
         try:
             client = AsyncOpenAI(api_key=os.environ.get('OPEN_AI_KEY'))
             prompt = (

@@ -7,18 +7,12 @@ from pathlib import Path
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from .routers.clearview import router as clearview_router
+from .routers.audio import router as audio_router
 
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    nltk.download("punkt", quiet=True)
-    nltk.download("punkt_tab", quiet=True)
-    yield
-
-
-app = FastAPI(title="Clearway API", lifespan=lifespan)
+app = FastAPI(title="Clearway API")
 
 app.include_router(clearview_router)
+app.include_router(audio_router)
 
 @app.get("/")
 def root():
